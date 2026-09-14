@@ -1,5 +1,7 @@
 name: Desktop Windows signing
 
+# Paused: Windows desktop is not published from this fork. Re-enable the
+# pull_request trigger below when NSIS signing is needed again.
 on:
   workflow_dispatch:
     inputs:
@@ -9,15 +11,6 @@ on:
         options: [none, keyvault]
         default: none
         required: true
-  # A label permits validation before this workflow exists on main. New pushes
-  # run only the checks: remove/reapply the label to request signing a new head.
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
-    paths:
-      - desktop/**
-      - package.json
-      - .github/workflows/desktop-signing.yml
-      - docs/windows-signing.md
 
 permissions:
   contents: read
@@ -29,6 +22,7 @@ concurrency:
 jobs:
   checks:
     name: Signing regressions (no Azure access)
+    if: false
     runs-on: windows-2025
     timeout-minutes: 10
     steps:
@@ -43,11 +37,7 @@ jobs:
   sign:
     name: Sign and verify app and NSIS installer
     needs: checks
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.signing-mode == 'keyvault') ||
-      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
-       github.event.label.name == 'windows-signing' &&
-       github.event.pull_request.head.repo.full_name == github.repository)
+    if: false
     environment: windows-signing
     permissions:
       contents: read

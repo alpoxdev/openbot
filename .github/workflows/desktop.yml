@@ -1,8 +1,7 @@
 name: Desktop
 
-# The shell is the one thing here that cannot be proved by running it on Linux: it is a macOS app, a
-# Windows app and a Linux app built from one tree, and the ways they differ are exactly the ways
-# this fails. So it tests and builds on all three, on every change to it.
+# Desktop is published as a macOS app. Windows and Linux installers are not built here.
+# Docker images are covered by ci.yml, not this workflow.
 on:
   pull_request:
     paths: ["desktop/**", "package.json", ".github/workflows/desktop.yml"]
@@ -44,9 +43,8 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
         working-directory: desktop/src-tauri
 
-  # The three artifacts. Not `bundle`, which signs and notarizes: that is S7 and needs certificates
-  # this workflow deliberately does not hold. This proves the tree builds into an app on each
-  # platform, which is the thing that breaks when a dependency is not portable.
+  # The macOS artifact. Not `bundle` with Apple notarization: that is S7 and needs certificates
+  # this workflow deliberately does not hold. This proves the tree builds into a DMG.
   app:
     name: app (${{ matrix.platform.name }})
     runs-on: ${{ matrix.platform.runner }}
@@ -56,10 +54,6 @@ jobs:
         platform:
           - name: macos
             runner: macos-latest
-          - name: windows
-            runner: windows-latest
-          - name: linux
-            runner: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -75,10 +69,6 @@ jobs:
         with:
           workspaces: desktop/src-tauri
           key: ${{ matrix.platform.name }}
-      - if: matrix.platform.name == 'linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - run: bun install --frozen-lockfile
         working-directory: desktop
       - run: bun run typecheck
@@ -140,10 +130,6 @@ jobs:
           name: openbot-desktop-${{ matrix.platform.name }}
           path: |
             desktop/src-tauri/target/release/bundle/**/*.dmg
-            desktop/src-tauri/target/release/bundle/**/*.exe
-            desktop/src-tauri/target/release/bundle/**/*.AppImage
-            desktop/src-tauri/target/release/bundle/**/*.deb
-            desktop/src-tauri/target/release/bundle/**/*.rpm
             desktop/build-version.json
           if-no-files-found: error
           retention-days: 7

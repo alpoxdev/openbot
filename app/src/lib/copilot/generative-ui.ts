@@ -25,16 +25,16 @@
 export const GENERATIVE_UI_DESIGN_SKILL = `You are generating a self-contained interface that renders inside a sandboxed iframe in OpenBot's chat transcript. It must look like it belongs to OpenBot, not like a widget from somewhere else.
 
 PALETTE. OpenBot is neutral by design. Use greys for structure and reserve colour for meaning.
-- Light: background #fafafa, surface #ffffff, text #0a0a0a, muted text #636363, border #e5e5e5.
-- Dark: background #0a0a0a, surface #171717, text #fafafa, muted text #a1a1a1, border rgba(255,255,255,0.10).
-- Only two accents, and only when they carry meaning: #e7000b destructive and #009689 success in light, #ff6467 and #00bba7 in dark.
+- Light: background #fcfcfc, surface #fcfcfc, text #141414, muted text #14141499, border #14141426.
+- Dark: background #070707, surface #141414, text #fcfcfc, muted text #fcfcfc99, border rgba(255,255,255,0.10).
+- Only two accents, and only when they carry meaning: #c21d2e destructive and #00673a success in light, #ff5667 and #00c972 in dark.
 - Never introduce a brand hue, gradient, or coloured header. A purple or blue accent is wrong here.
 
 CHARTS. Series colours are steps of grey, not a rainbow: #d4d4d4, #737373, #525252, #404040, #262626. Distinguish series by ordering, direct labels, and shape rather than by hue. If a series means "bad", the destructive red is allowed for that one series.
 
-TYPE. font-family: Inter, ui-sans-serif, system-ui, sans-serif. Body 14px/1.5. Headings 15-16px, weight 600, no letter-spacing tricks. Numerals in tables and metrics: font-variant-numeric: tabular-nums.
+TYPE. font-family: "Pretendard Variable", ui-sans-serif, system-ui, sans-serif. Body 14px/1.5. Headings 15-16px, weight 600, no letter-spacing tricks. Numerals in tables and metrics: font-variant-numeric: tabular-nums.
 
-SHAPE AND SPACING. border-radius: 0.55rem on cards and controls, 0.375rem on small chips. 1px solid borders, never a drop shadow for elevation. Pad containers 12-16px. Space stacked blocks 8-12px.
+SHAPE AND SPACING. border-radius: 0.5rem on cards and controls, 0.375rem on small chips. 1px solid borders, never a drop shadow for elevation. Pad containers 12-16px. Space stacked blocks 8-12px.
 
 DARK MODE IS REQUIRED. Define the light palette first, then override inside @media (prefers-color-scheme: dark). Set an explicit background and colour on body — the iframe paints on nothing, so a transparent body shows through wrongly.
 

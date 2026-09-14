@@ -14,8 +14,9 @@
 #   no serverless container platform permits. Without it every Bot shares the browser below, exactly
 #   as they do on a laptop with no supervisor configured. Per-Bot isolation is A6.
 #
-# Chromium comes from Playwright's own installer, but the final image is not Playwright's all-browser
-# image. Keep this version matched to `agent-computer/package.json`: bump both or neither.
+# OS libraries for Chromium come from Playwright's installer; the Cloak binary is
+# downloaded at computer start, not baked into this image. Keep PLAYWRIGHT_VERSION
+# matched to `agent-computer/package.json`: bump both or neither.
 
 FROM node:24.18.1-bookworm-slim AS node-toolchain
 FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS bun-toolchain
@@ -28,13 +29,14 @@ ARG PLAYWRIGHT_VERSION=1.62.1
 ENV BUN_INSTALL=/usr/local
 ENV PATH="/usr/local/bin:${PATH}"
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV CLOAKBROWSER_CACHE_DIR=/profiles/.cloakbrowser
+ENV CLOAKBROWSER_AUTO_UPDATE=false
 COPY --from=node-toolchain /usr/local /usr/local
 COPY --from=bun-toolchain /usr/local/bin/bun /usr/local/bin/bun
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip xz-utils \
   && ln -s bun /usr/local/bin/bunx \
-  && bunx --bun "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium \
+  && bunx --bun "playwright@${PLAYWRIGHT_VERSION}" install-deps chromium \
   && rm -rf /root/.cache /tmp/* /var/lib/apt/lists/* \
   && useradd --create-home --shell /bin/bash pwuser
 

@@ -38,7 +38,7 @@ import { join } from "node:path";
 import { type BrowserContext, chromium, type Page } from "playwright";
 import { profileDirectoryFor } from "./bot-id";
 import { browserModeFromEnv } from "./browser-mode";
-import { chooseEvictions, chooseIdle } from "./browser-eviction";
+import { admitBeforeLaunch, chooseIdle } from "./browser-eviction";
 import { egressFor, egressLabel } from "./egress";
 import { numberFromEnv, settleWithin } from "./env";
 import { chooseLivePage } from "./live-page";
@@ -279,14 +279,33 @@ export function createProfiles(root: string, onClosed: BrowserClosed) {
   };
 
   /**
-   * Keep the number of running browsers under the cap.
+   * Free a Cloak seat before starting another browser.
    *
-   * Least recently used first, which is the Bot that has been quiet longest. Called after a launch
-   * rather than before, so the Bot that just asked is never the one closed.
+   * The cap used to run after a successful launch, so a cap of one briefly held two
+   * Chromium processes. Cloak seats are the scarce thing now, so the live Bot that
+   * has been quiet longest is closed first, and a launch already in flight is waited
+   * out rather than starting a second one beside it.
    */
-  const enforceCap = async (): Promise<void> => {
-    for (const botId of chooseEvictions(live.entries(), MAX_LIVE_BROWSERS)) {
-      await evict(botId, "the cap on running browsers was reached");
+  const evictBeforeLaunch = async (botId: string): Promise<void> => {
+    for (;;) {
+      const othersStarting = [...starting.keys()].filter((id) => id !== botId)
+        .length;
+      const decision = admitBeforeLaunch(
+        live.entries(),
+        othersStarting,
+        MAX_LIVE_BROWSERS,
+        botId,
+      );
+      if (decision.admit) return;
+      if (decision.evict) {
+        await evict(decision.evict, "the cap on running browsers was reached");
+        continue;
+      }
+      const pending = [...starting.entries()]
+        .filter(([id]) => id !== botId)
+        .map(([, work]) => work);
+      if (pending.length === 0) return;
+      await settleWithin(Promise.race(pending), LAUNCH_WAIT_MS);
     }
   };
 
@@ -384,6 +403,7 @@ export function createProfiles(root: string, onClosed: BrowserClosed) {
       }
 
       const launch = (async () => {
+        await evictBeforeLaunch(botId);
         const dir = directoryFor(botId);
         await sweepLocks(dir);
         const proxy = egressFor(botId, process.env);
@@ -438,9 +458,6 @@ export function createProfiles(root: string, onClosed: BrowserClosed) {
         });
         page.on("close", () => record.retarget());
         live.set(botId, record);
-        // After the new one is in the map, so the cap counts what is really running and the Bot that
-        // just asked is the most recently used and therefore never the one closed.
-        await enforceCap();
         // Not `page`: a window opened while the browser was starting is already the live one.
         return record.page;
       })();

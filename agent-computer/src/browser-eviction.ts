@@ -23,8 +23,8 @@ export type Evictable = { usedAt: number };
 /**
  * Which to close because there are too many running.
  *
- * Least recently used first: the Bot that has been quiet longest. Applied after a launch, so the Bot
- * that just asked is the most recently used and is therefore never the one closed.
+ * Least recently used first: the Bot that has been quiet longest. Used both after a
+ * launch (legacy) and before one, so a Cloak seat is not taken before the cap is enforced.
  */
 export function chooseEvictions(
   running: Iterable<[string, Evictable]>,
@@ -57,4 +57,25 @@ export function chooseIdle(
   return [...running]
     .filter(([, entry]) => entry.usedAt <= cutoff)
     .map(([botId]) => botId);
+}
+
+/**
+ * Whether a launch may start now, and which live Bot to close first if not.
+ *
+ * Counts live browsers plus launches already reserved. The Bot being launched is never
+ * the one evicted: closing it would free a seat and then immediately start it again.
+ */
+export function admitBeforeLaunch(
+  live: Iterable<[string, Evictable]>,
+  startingCount: number,
+  max: number,
+  launchingBotId: string,
+): { admit: true } | { admit: false; evict: string | undefined } {
+  const liveEntries = [...live];
+  if (liveEntries.length + startingCount < max) return { admit: true };
+
+  const victim = liveEntries
+    .filter(([botId]) => botId !== launchingBotId)
+    .sort(([, a], [, b]) => a.usedAt - b.usedAt)[0]?.[0];
+  return { admit: false, evict: victim };
 }

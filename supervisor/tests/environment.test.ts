@@ -10,6 +10,7 @@ describe("what the supervisor tells a computer about its browser", () => {
       }),
     ).toEqual([
       "COMPUTER_BOT_ID=invoice-collector",
+      "HOME=/profiles",
       "COMPUTER_TOKEN=secret",
       "COMPUTER_BROWSER_MODE=headed",
     ]);
@@ -18,7 +19,11 @@ describe("what the supervisor tells a computer about its browser", () => {
   test("does not invent a browser mode when the deployment left it unset", () => {
     expect(
       environmentFor("invoice-collector", { COMPUTER_TOKEN: "secret" }),
-    ).toEqual(["COMPUTER_BOT_ID=invoice-collector", "COMPUTER_TOKEN=secret"]);
+    ).toEqual([
+      "COMPUTER_BOT_ID=invoice-collector",
+      "HOME=/profiles",
+      "COMPUTER_TOKEN=secret",
+    ]);
   });
 
   test("forwards named Cloak and cap settings when they are set", () => {
@@ -36,6 +41,7 @@ describe("what the supervisor tells a computer about its browser", () => {
       }),
     ).toEqual([
       "COMPUTER_BOT_ID=invoice-collector",
+      "HOME=/profiles",
       "COMPUTER_TOKEN=secret",
       "COMPUTER_MAX_BROWSERS=4",
       "COMPUTER_BROWSER_IDLE_MS=0",
@@ -56,6 +62,7 @@ describe("what the supervisor tells a computer about its browser", () => {
     });
     expect(env).toEqual([
       "COMPUTER_BOT_ID=invoice-collector",
+      "HOME=/profiles",
       "COMPUTER_TOKEN=secret",
     ]);
     expect(env.join("\n")).not.toContain("SKIP_CHECKSUM");

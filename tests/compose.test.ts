@@ -481,6 +481,9 @@ test("builds the deployment image with Chromium OS deps, not a Cloak binary", ()
       "      dockerfile: agent-computer/Dockerfile",
     ].join("\n"),
   );
+  expect(compose).toContain("CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-false}");
+  expect(compose).toContain("start_period: 1500s");
+  expect(compose).not.toContain("CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-}");
 });
 
 test("takes Bun from the same immutable release in both computer images", () => {

@@ -34,6 +34,7 @@ export function environmentFor(
   const spireSocketVolume = env.SPIRE_AGENT_SOCKET_VOLUME;
   return [
     `COMPUTER_BOT_ID=${botId}`,
+    `HOME=${present(env.HOME) ?? "/profiles"}`,
     ...NAMED.flatMap((key) => {
       const value = present(env[key]);
       return value ? [`${key}=${value}`] : [];

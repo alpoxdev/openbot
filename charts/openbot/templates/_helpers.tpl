@@ -475,6 +475,9 @@ be able to address the API server at all, and the default is the wrong way round
             (dict "name" "PORT" "value" "4100")
             (dict "name" "WORKSPACE_DIR" "value" "/workspace")
             (dict "name" "PROFILES_DIR" "value" "/profiles")
+            (dict "name" "HOME" "value" "/profiles")
+            (dict "name" "CLOAKBROWSER_CACHE_DIR" "value" "/profiles/.cloakbrowser")
+            (dict "name" "CLOAKBROWSER_AUTO_UPDATE" "value" "false")
             (dict "name" "COMPUTER_TOKEN" "valueFrom" (dict "secretKeyRef" (dict
               "name" (default (include "openbot.secretName" .) .Values.computers.existingTokenSecret)
               "key" "computer-token"))))
@@ -486,6 +489,10 @@ be able to address the API server at all, and the default is the wrong way round
           "httpGet" (dict "path" "/health" "port" "http")
           "periodSeconds" 10
           "failureThreshold" 6)
+        "startupProbe" (dict
+          "httpGet" (dict "path" "/health" "port" "http")
+          "periodSeconds" 10
+          "failureThreshold" 162)
         "resources" .Values.computers.resources)))) -}}
 {{- $pod := index $spec "podTemplate" -}}
 {{- $podSpec := index $pod "spec" -}}

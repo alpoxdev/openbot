@@ -42,4 +42,4 @@ EXPOSE 4100
 HEALTHCHECK --interval=10s --timeout=3s --start-period=1500s --retries=5 \
   CMD bun -e "const r = await fetch('http://localhost:4100/health'); process.exit(r.ok ? 0 : 1)"
 
-CMD ["bun", "src/index.ts"]
+CMD ["sh", "-c", "export HOME=\"${HOME:-/profiles}\"; exec bun src/index.ts"]

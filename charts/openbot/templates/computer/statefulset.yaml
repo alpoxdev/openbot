@@ -122,6 +122,8 @@ spec:
               value: /workspace
             - name: PROFILES_DIR
               value: /profiles
+            - name: HOME
+              value: /profiles
             - name: COMPUTER_TOKEN
               valueFrom:
                 secretKeyRef:

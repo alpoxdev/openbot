@@ -56,11 +56,12 @@ const COMPUTER_HEALTHCHECK = {
     "CMD-SHELL",
     `bun -e "const r = await fetch('http://localhost:${COMPUTER_PORT.split("/")[0]}/health'); process.exit(r.ok ? 0 : 1)"`,
   ],
-  // Nanoseconds, which is what the API takes. The same numbers the Dockerfile states.
-  Interval: 2_000_000_000,
+  // Nanoseconds, which is what the API takes. Matches agent-computer/Dockerfile:
+  // interval 10s, timeout 3s, start-period 1500s (first-run Cloak download), retries 5.
+  Interval: 10_000_000_000,
   Timeout: 3_000_000_000,
-  StartPeriod: 2_000_000_000,
-  Retries: 30,
+  StartPeriod: 1_500_000_000_000,
+  Retries: 5,
 };
 
 /**

@@ -30,28 +30,32 @@ describe("chat shell baseline", () => {
     expect(source).toContain("SidebarShell");
     expect(source).toContain('width="340px"');
     expect(source).toContain("AppSidebar");
+    expect(source).toContain("AgentRail");
+    expect(source).toContain("MembersRail");
   });
 
-  test("the composer still ships the rounded-2xl min-h-14 shell", () => {
+  test("the composer ships a Grok pill radius instead of rounded-2xl", () => {
     const source = readWorktreeFile(
       "src/components/channels/composer/composer.tsx",
     );
 
-    expect(source).toContain("rounded-2xl");
-    expect(source).toContain("min-h-14");
+    expect(source).toContain("rounded-full");
+    expect(source).toContain("rounded-[24px]");
+    expect(source).not.toContain("rounded-2xl");
+    expect(source).toContain("min-h-12");
   });
 
-  test("app/src does not pin agent-rail or members-rail test ids", () => {
+  test("app/src pins agent-rail and members-rail test ids", () => {
     const files = walkFiles(srcRoot);
-    const hits = files.filter((path) => {
-      const source = readFileSync(path, "utf8");
-      return (
-        source.includes('data-testid="agent-rail"') ||
-        source.includes('data-testid="members-rail"')
-      );
-    });
+    const agentRail = files.filter((path) =>
+      readFileSync(path, "utf8").includes('data-testid="agent-rail"'),
+    );
+    const membersRail = files.filter((path) =>
+      readFileSync(path, "utf8").includes('data-testid="members-rail"'),
+    );
 
-    expect(hits).toEqual([]);
+    expect(agentRail.length).toBeGreaterThan(0);
+    expect(membersRail.length).toBeGreaterThan(0);
   });
 });
 

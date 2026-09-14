@@ -315,7 +315,7 @@ function Queued({
          * message sent by mistake rather than as a file waiting its turn.
          */}
         {text ? (
-          <Bubble align="end" className="opacity-60" variant="muted">
+          <Bubble align="end" className="opacity-60" variant="default">
             <BubbleContent>
               {/* Shown exactly as typed, for the same reason a sent message is. */}
               <span className="whitespace-pre-wrap">{text}</span>
@@ -587,16 +587,15 @@ const TranscriptMessage = memo(function TranscriptMessage({
       <MessageContent>
         <Arriving delay={delay}>
           {/*
-            A Bot's message takes the whole column, not the width of its words: block content
-            inside it — a fenced code block, a table — should span the transcript rather than
-            shrink to its own text. A person's bubble keeps fitting what they said.
+            A Bot's answer is a sand-grey bubble that fits its words. Block content inside it
+            still wraps; a full-column ghost used to leave markdown sitting on the page with no
+            fill, which is the look this restyle is replacing.
           */}
           <Bubble
             align={align}
-            variant={isUser ? "muted" : "ghost"}
-            className={isUser ? undefined : "w-full"}
+            variant={isUser ? "default" : "muted"}
           >
-            <BubbleContent className={isUser ? undefined : "w-full"}>
+            <BubbleContent>
               {isUser ? (
                 // A person's own message is shown exactly as they typed it. Rendering it as markdown
                 // would silently reformat what they said, and an asterisk in a sentence is not

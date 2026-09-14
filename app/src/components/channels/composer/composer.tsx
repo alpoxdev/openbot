@@ -1014,6 +1014,7 @@ export function Composer({
     [agents, commands],
   );
   const draft = useMemo(() => toDraft(value, staged), [staged, value]);
+  const pillWraps = images.length > 0 || files.length > 0;
 
   /**
    * MORE FILES ON THIS STRIP THAN ONE MESSAGE MAY CARRY — a state the screening is supposed to make
@@ -1392,7 +1393,9 @@ export function Composer({
              * started it 42px in from the frame's left edge with nothing under it. The strip is
              * its own row across the top now, and the three controls keep their row below it.
              */
-            "flex min-h-14 flex-col rounded-2xl border border-border bg-card px-3 py-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+            pillWraps
+              ? "flex min-h-12 flex-col rounded-[24px] border border-border bg-card px-3 py-2.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+              : "flex min-h-12 flex-col rounded-full border border-border bg-card px-3 py-2.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
             className,
           )}
           onSubmit={handleFormSubmit}
@@ -1495,7 +1498,7 @@ export function Composer({
       {tooManyStagedNotice}
       <form
         aria-busy={isBusy}
-        className="overflow-hidden rounded-2xl border border-border bg-card"
+        className="overflow-hidden rounded-[24px] border border-border bg-card"
         onSubmit={handleFormSubmit}
       >
         {filePicker}

@@ -147,13 +147,15 @@ cd agent-computer && bun install
 cd .. && bun run test:live-screen
 ```
 
-It drives the live screen against the real computer process with a real Chromium: a socket closing
+It drives the live screen against the real computer process with CloakBrowser: a socket closing
 while the browser is still starting, a second connection taking the screen from the first, the wheel
 refusing input from the socket that owns it, and a browser closing by request or by the idle sweep.
-Those need `agent-computer/src/index.ts`, which imports Playwright at module scope, and `playwright`
-is declared only in `agent-computer/package.json`, which `bun install` at the root does not reach. So
-without `OPENBOT_LIVE_SCREEN=1` the files skip before importing anything, which is what keeps
-`bun run test` and CI working where that dependency was never installed.
+Those need `agent-computer/src/index.ts`, which imports cloakbrowser at module scope, and
+`cloakbrowser` is declared only in `agent-computer/package.json`, which `bun install` at the root does
+not reach. Install the computer's own lockfile, then `cd agent-computer && bunx cloakbrowser install`
+(or let the first run call `ensureBinary`). Without `OPENBOT_LIVE_SCREEN=1` the files skip before
+importing anything, which is what keeps `bun run test` and CI working where that dependency was
+never installed.
 
 ## Contribution checklist
 

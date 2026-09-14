@@ -8,7 +8,7 @@ import { afterAll, describe, expect, test } from "bun:test";
  * which the machine running `bun test` is not required to have. The import is inside the test rather
  * than at the top of the file for the same reason.
  *
- *   cd agent-computer && bunx playwright install chromium
+ *   cd agent-computer && bunx cloakbrowser install
  *   OPENBOT_COMPUTER_BROWSER=1 bun test tests/follows-popup.test.ts
  */
 const asked = process.env.OPENBOT_COMPUTER_BROWSER === "1";

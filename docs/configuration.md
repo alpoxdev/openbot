@@ -254,6 +254,11 @@ then is a row nothing will read.
 | `AGENT_COMPUTER_POLICY`              | JSON action policy: `{"mode":"enforce","deny":[...],"allow":[...]}`.                      |
 | `COMPUTER_RUNTIME`                   | Set to `runsc` to run supervised computers under gVisor.                                  |
 | `COMPUTER_SANDBOX`                   | Set to `on` to enable Chromium's own sandbox where the host permits user namespaces. Which way it went is printed at start-up. |
+| `CLOAKBROWSER_LICENSE_KEY`           | Optional CloakBrowser license. Set it for the latest Chromium (151). Unset uses Cloak's keyless binary (Linux 146 / macOS 145), not Playwright's stock Chromium. |
+| `CLOAKBROWSER_CACHE_DIR`             | Where the official Cloak binary is downloaded on first start. Default `/profiles/.cloakbrowser`. |
+| `CLOAKBROWSER_AUTO_UPDATE`           | Keep `false`. The computer must not replace its Chromium mid-run. |
+| `CLOAKBROWSER_VERSION`               | Optional pin of the Cloak Chromium version. |
+| `CLOAKBROWSER_BINARY_PATH`           | Air-gap hatch: path to an already-installed Cloak binary. The computer will not download if this is set. |
 
 `COMPUTER_SANDBOX` is not the cluster sandbox provider. A Kubernetes deployment can instead run each
 computer as a sandboxed pod, selected by `COMPUTER_SANDBOX_NAMESPACE` with `COMPUTER_SANDBOX_IDLE_AFTER`
@@ -281,7 +286,10 @@ The supervisor recreates each computer with the same named volumes on its next r
 - `COMPUTER_BOT_ID`
 - `EGRESS_PROXY_DEFAULT` (in `egress.env`, see below)
 - `EGRESS_PROXY_<BOT_ID>` (in `egress.env`, see below)
+- `CLOAKBROWSER_LICENSE_KEY`, `CLOAKBROWSER_CACHE_DIR`, `CLOAKBROWSER_AUTO_UPDATE`, `CLOAKBROWSER_VERSION`, `CLOAKBROWSER_BINARY_PATH`
 - `COMPUTER_SHELL_ENV`
+
+Hosted customer-controlled browser use / take-the-wheel may need a Cloak OEM license. Operators talk to CloakHQ; OpenBot does not ship a key.
 
 A command on the computer inherits PATH, locale and terminal names, and the proxy variables, not
 the rest of the process environment. Userinfo is stripped from a proxy URL, so a password in

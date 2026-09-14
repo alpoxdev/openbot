@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "cloakbrowser": "0.5.10",
     "playwright": "1.62.1",
+    "playwright-core": "1.62.1",
     "spiffe": "^0.5.1",
     "yaml": "^2.9.0"
   },

@@ -238,6 +238,11 @@ jobs:
       # pinned by the desktop lockfile rather than the root one.
       - run: bun install --frozen-lockfile
         working-directory: desktop
+      # npm deps only for the computer package (no Chromium download; CLOAKBROWSER_AUTO_UPDATE is
+      # irrelevant at install). Root test discovery loads agent-computer tests, so this lockfile
+      # has to be installed like the sibling Bot packages above.
+      - run: bun install --frozen-lockfile
+        working-directory: agent-computer
       # Not the db:migrate script: that one loads ../.env, which does not exist in CI. DATABASE_URL
       # comes from the job env instead, which drizzle.config.ts already reads.
       - run: bunx drizzle-kit migrate --config=drizzle.config.ts

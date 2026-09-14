@@ -261,7 +261,8 @@ installing on somebody's bare-metal cluster.
 ## Refused at install, not in a crash loop
 
 The chart fails the install, naming the value to change, when: there is no database or two of them;
-nobody would be an administrator; `singleUser` is combined with a public URL; both an Ingress and an
+nobody would be an administrator; leftover `config.auth.microsoft`/`okta` or
+`secrets.microsoftClientSecret`/`oktaClientSecret` are still present; `singleUser` is combined with a public URL; both an Ingress and an
 HTTPRoute are enabled; both `externalSecrets` and an existing Secret are named; a Bot endpoint is
 named with no token to call it with; a browser is asked for inside more than one API replica; or
 `routines.enabled` is set with no `secrets.workerSharedSecret` — and, on `externalSecrets`, no

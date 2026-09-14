@@ -1410,8 +1410,8 @@ if (config.singleUser) {
   // Loud, every boot. A server that is not checking who is asking should never be a quiet default.
   console.warn(
     "No identity provider is configured, so every request is treated as " +
-      `${DEV_ACTOR.email} (administrator). Configure GOOGLE_OAUTH_*, ` +
-      "MICROSOFT_OAUTH_* or OKTA_OAUTH_* before anybody else can reach this.",
+      `${DEV_ACTOR.email} (administrator). Configure GOOGLE_OAUTH_* ` +
+      "before anybody else can reach this.",
   );
 }
 

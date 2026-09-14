@@ -125,21 +125,15 @@ config:
   # with no identity provider unless this says somebody meant it.
   singleUser: false
 
-  # How people sign in. One of these, or `singleUser` above, and nothing else will do: the server
-  # refuses to start rather than serve a deployment where every visitor is an administrator.
+  # How people sign in. Google from the environment, or `singleUser` above, and
+  # nothing else will do: the server refuses to start rather than serve a
+  # deployment where every visitor is an administrator. Company directories are
+  # registered at runtime under Admin → Identity providers, not here.
   #
   # Client secrets go under `secrets` below. Only the public halves belong here.
   auth:
     google:
       clientId: ""
-    microsoft:
-      clientId: ""
-      # `common` is Microsoft's own default and admits personal accounts as well as work ones. A
-      # company that means "our staff" puts its directory GUID here.
-      tenantId: ""
-    okta:
-      clientId: ""
-      issuer: ""
   tenantPackageDir: /app/examples/fintech
 
   # CopilotKit Intelligence, which OpenBot requires. All four values are needed together: the server
@@ -408,10 +402,8 @@ secrets:
   # Required when `routines.enabled`: what the CronJob presents to the API server to be recognised
   # as the worker rather than as an unauthenticated caller.
   workerSharedSecret: ""
-  # The client secret for whichever provider is configured above.
+  # The client secret for Google, when config.auth.google.clientId is set.
   googleClientSecret: ""
-  microsoftClientSecret: ""
-  oktaClientSecret: ""
 
 externalSecrets:
   enabled: false

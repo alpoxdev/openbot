@@ -108,7 +108,7 @@ function IdentityProvidersPage() {
       title="Identity providers"
     >
       <PageSection
-        description="Google, Microsoft and Okta are configured in the environment instead and do not appear here."
+        description="Google is configured in the environment. Other directories (Microsoft, Okta, and anything SAML or OIDC) are registered here and do not use MICROSOFT_OAUTH_* or OKTA_OAUTH_*."
         title="Registered"
       >
         {failure ? (

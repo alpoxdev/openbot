@@ -8,18 +8,14 @@ import type { AuthProviderId } from "@/lib/auth/queries";
  * page has to be trustworthy, and a request to a third party from an unauthenticated page is a
  * request nobody asked for.
  *
- * Reproduced at their published colours because two of the three require it. Google's guidelines say
- * the standard colour G, at its own aspect ratio, neither recoloured nor restretched, and Microsoft
- * publish the four squares the same way. They are trade marks used to say "this button signs you in
- * with them", which is what the guidelines are for.
+ * Google's guidelines say the standard colour G, at its own aspect ratio, neither recoloured nor
+ * restretched. It is a trade mark used to say "this button signs you in with them".
  *
- * All three are drawn into the same 18x18 box so the buttons line up. Google's G is not square, so
- * it is centred in the box rather than stretched to fill it.
+ * There is no default mark for an unknown id: a typo must not become a different vendor's button.
  */
 export function ProviderLogo({ provider }: { provider: AuthProviderId }) {
   if (provider === "google") return <GoogleMark />;
-  if (provider === "microsoft") return <MicrosoftMark />;
-  return <OktaMark />;
+  return null;
 }
 
 /** Google's four-colour G, at the published path and colours. */
@@ -52,45 +48,3 @@ function GoogleMark() {
   );
 }
 
-/** Microsoft's four squares, at their published colours. */
-function MicrosoftMark() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="size-[18px]"
-      focusable="false"
-      viewBox="0 0 23 23"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M1 1h10v10H1z" fill="#F25022" />
-      <path d="M12 1h10v10H12z" fill="#7FBA00" />
-      <path d="M1 12h10v10H1z" fill="#00A4EF" />
-      <path d="M12 12h10v10H12z" fill="#FFB900" />
-    </svg>
-  );
-}
-
-/**
- * Okta's circular mark.
- *
- * `currentColor` rather than Okta blue, which is the one difference between this and the other two.
- * Okta is not a consumer sign-in button somebody recognises by colour; it is whichever Okta the
- * company running this deployment happens to use, and their guidelines allow a monochrome mark. It
- * also means it stays legible in both themes without a second asset.
- */
-function OktaMark() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="size-[18px]"
-      focusable="false"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}

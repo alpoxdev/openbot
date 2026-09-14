@@ -357,32 +357,6 @@ and in whatever holds the release, which is not where `KEY_ENCRYPTION_KEY` belon
       name: {{ include "openbot.secretName" $ }}
       key: google-client-secret
 {{- end }}
-{{- with .Values.config.auth.microsoft.clientId }}
-- name: MICROSOFT_OAUTH_CLIENT_ID
-  value: {{ . | quote }}
-- name: MICROSOFT_OAUTH_CLIENT_SECRET
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "openbot.secretName" $ }}
-      key: microsoft-client-secret
-{{- end }}
-{{- with .Values.config.auth.microsoft.tenantId }}
-- name: MICROSOFT_OAUTH_TENANT_ID
-  value: {{ . | quote }}
-{{- end }}
-{{- with .Values.config.auth.okta.clientId }}
-- name: OKTA_OAUTH_CLIENT_ID
-  value: {{ . | quote }}
-- name: OKTA_OAUTH_CLIENT_SECRET
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "openbot.secretName" $ }}
-      key: okta-client-secret
-{{- end }}
-{{- with .Values.config.auth.okta.issuer }}
-- name: OKTA_OAUTH_ISSUER
-  value: {{ . | quote }}
-{{- end }}
 - name: KEY_ENCRYPTION_KEY
   valueFrom:
     secretKeyRef:
@@ -402,7 +376,7 @@ and in whatever holds the release, which is not where `KEY_ENCRYPTION_KEY` belon
     secretKeyRef:
       name: {{ include "openbot.secretName" . }}
       key: better-auth-secret
-      optional: {{ not (or .Values.config.auth.google.clientId .Values.config.auth.microsoft.clientId .Values.config.auth.okta.clientId) }}
+      optional: {{ not .Values.config.auth.google.clientId }}
 - name: OPENAI_API_KEY
   valueFrom:
     secretKeyRef:

@@ -172,7 +172,7 @@ Leave `EMBEDDED_POSTGRES` off and set `DATABASE_URL` to point at a database you 
 - **Components instead of prose**: compiled React components live in `app/src/components/gallery/`, sandboxed ones are authored in `/admin/playground` and published with no deployment. Every call asks the server whether the component exists, is published, and is not withheld from that Bot. Data functions are granted per component.
 - **Governed MCP**: Google Drive and Notion ship in the catalogue, reached as the person asking. The catalogue carries only vendors this deployment stands behind, so adding one is a review of that vendor. Custom servers must pass URL checks; unknown tools and custom-server tools are treated as writes, and a catalogue tool the server advertises but does not name as a write classifies as a read. A Bot is told which connectors exist here and which it holds, so it says it has not been granted one rather than browsing to the vendor's website.
 - **Skills are instructions, not capabilities**: personal skills attach only to Bots their author owns, deployment skills are admin-owned, and both are invoked with `/` in the composer. A Bot granted the shipped `skill-creator` skill can write one with you in the conversation, and saves it only when you press the button on the card.
-- **Sign in with what your company already has**: Google, Microsoft or Okta from the environment, or a company's own SAML or OpenID Connect provider registered while the deployment runs and routed by email domain. Any one turns sign-in on; several may be configured at once.
+- **Sign in with what your company already has**: Google from the environment, or a company's own SAML or OpenID Connect provider registered while the deployment runs and routed by email domain. Google turns env sign-in on; several runtime directories may be registered at once.
 - **Decide who gets in**: `/admin/people` lists everybody who has signed in, promotes and demotes them, and removes access, which ends the session they are using and stops the next sign-in. Every change is on the audit trail.
 - **An audit trail you can read**: `/admin/audit` lists what was permitted, what was refused and what failed, and every refusal carries the rule that caused it.
 - **Credentials encrypted at rest**: stored through `/admin/credentials`, never returned by an API, and redacted from audit events.
@@ -270,11 +270,10 @@ More detail: [docs/architecture.md](docs/architecture.md).
 
 `.env.example` ships `OPENBOT_SINGLE_USER=true`, which is one administrator and no sign-in: how a
 fresh clone reaches the product without registering an OAuth client first. Delete that line and
-configure **any one** of Google, Microsoft or Okta before anybody else can reach the deployment.
-With neither, it refuses to start rather than admitting everybody as an administrator. Configure
-more than one provider and the sign-in screen offers each of them.
+configure **Google** before anybody else can reach the deployment.
+With neither, it refuses to start rather than admitting everybody as an administrator.
 
-These four are needed whichever you pick:
+These four are needed with Google:
 
 ```sh
 BETTER_AUTH_URL=http://localhost:3001        # where OAuth callbacks come back to
@@ -283,22 +282,12 @@ TRUSTED_ORIGINS=http://localhost:3010        # where the app is served from
 INITIAL_ADMIN_EMAILS=you@example.com         # comma separated
 ```
 
-Then the provider. Register the redirect URI shown beside it.
+Then Google. Register the redirect URI shown beside it.
 
 ```sh
 # Google — http://localhost:3001/api/auth/callback/google
 GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
-
-# Microsoft — http://localhost:3001/api/auth/callback/microsoft
-MICROSOFT_OAUTH_CLIENT_ID=
-MICROSOFT_OAUTH_CLIENT_SECRET=
-MICROSOFT_OAUTH_TENANT_ID=common             # your directory GUID for staff only
-
-# Okta — http://localhost:3001/api/auth/callback/okta
-OKTA_OAUTH_CLIENT_ID=
-OKTA_OAUTH_CLIENT_SECRET=
-OKTA_OAUTH_ISSUER=https://example.okta.com/oauth2/default
 ```
 
 Restart. Accounts, sessions and roles are stored in the same PostgreSQL database as everything else.
@@ -307,17 +296,22 @@ A company's own SAML or OpenID Connect provider is registered while the deployme
 Admin → Identity providers, and routed by email domain. An OIDC registration needs every host in the
 provider's discovery document listed in `TRUSTED_ORIGINS`, not only the issuer.
 
+Upgrading a deployment that still has `MICROSOFT_OAUTH_*` or `OKTA_OAUTH_*`:
+
+1. Add Google (`GOOGLE_OAUTH_*`) while keeping existing `BETTER_AUTH_*` and `INITIAL_ADMIN_EMAILS`.
+2. Delete leftover `MICROSOFT_OAUTH_*` / `OKTA_OAUTH_*` (and Helm `config.auth.microsoft`/`okta` plus `secrets.microsoftClientSecret`/`oktaClientSecret`).
+3. Upgrade / restart.
+4. Optionally register Entra/Okta as runtime SAML/OIDC under Admin → Identity providers.
+
+Do not set `OPENBOT_SINGLE_USER=true` on a public URL. Historical Microsoft/Okta account rows stay;
+new first-class callbacks for those directories stop.
+
 - `INITIAL_ADMIN_EMAILS` is required, because nothing else grants the administrator role and no
   screen can promote somebody afterwards. It is re-read on every sign-in, so editing it takes effect
   the next time that person signs in.
-- `MICROSOFT_OAUTH_TENANT_ID` defaults to `common`, which admits personal Microsoft accounts as well
-  as work ones. On a multi-tenant app registration Entra may send no `email` claim at all, so
-  OpenBot falls back to `upn` and then `preferred_username`. If none of the three arrives the
-  sign-in is refused and the reason is logged: add `email` as an optional claim, or use your
-  directory GUID here.
 - A half-configured provider is refused at start-up rather than at somebody's first attempt to sign
-  in: a client id with no secret, a secret shorter than 32 characters, or an Okta issuer with no
-  credentials behind it.
+  in: a client id with no secret, or a secret shorter than 32 characters.
+- Leftover `MICROSOFT_OAUTH_*` / `OKTA_OAUTH_*` refuse at start-up rather than being ignored.
 - **SAML and OIDC** are registered while the deployment runs rather than configured here. Sign in as
   an administrator and go to Admin → Identity providers with the metadata your identity team gave
   you. People then sign in by typing their email address, and the domain decides which provider

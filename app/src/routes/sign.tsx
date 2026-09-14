@@ -41,8 +41,8 @@ export const Route = createFileRoute("/sign")({
 });
 
 function SignScreen() {
-  // Which provider is being opened, rather than whether one is: with three buttons, a single
-  // boolean would put "Opening…" on all of them.
+  // Which provider is being opened, rather than whether one is: a single boolean would put
+  // "Opening…" on Google and the company-account form together.
   const [opening, setOpening] = useState<AuthProviderId | "sso" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { data: options } = useQuery(authProvidersQueryOptions());

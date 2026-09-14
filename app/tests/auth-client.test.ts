@@ -12,27 +12,19 @@ import { providerName, signInWith } from "@/lib/auth/client";
 };
 
 /**
- * Starting sign-in, for each provider a deployment can configure.
- *
- * The point of these is that all three go the same way. Okta is served by the generic OAuth plugin
- * rather than as a named provider, and it would have been easy to give it its own call; it does not
- * have one because the browser should not know which kind of provider it is asking for, so that a
- * deployment can gain one without the app being rebuilt.
+ * Starting sign-in for the env provider a deployment can configure.
  */
 describe("signInWith", () => {
-  test.each(["google", "microsoft", "okta"] as const)(
-    "starts %s through the same call",
-    async (provider) => {
-      const asked: string[] = [];
+  test.each(["google"] as const)("starts %s through the same call", async (provider) => {
+    const asked: string[] = [];
 
-      await signInWith(provider, async (input) => {
-        asked.push(input.provider);
-        return {};
-      });
+    await signInWith(provider, async (input) => {
+      asked.push(input.provider);
+      return {};
+    });
 
-      expect(asked).toEqual([provider]);
-    },
-  );
+    expect(asked).toEqual([provider]);
+  });
 
   test("sends the browser back where it started", async () => {
     let callbackURL = "";
@@ -50,21 +42,18 @@ describe("signInWith", () => {
       error: { message: "That provider is not configured." },
     });
 
-    expect(signInWith("okta", refuse)).rejects.toThrow(
+    expect(signInWith("google", refuse)).rejects.toThrow(
       "That provider is not configured.",
     );
   });
 
   /**
    * A refusal with nothing to say still has to name the provider.
-   *
-   * With one button this did not matter. With three, "Could not start sign-in" leaves somebody
-   * looking at three buttons with no idea which one failed.
    */
   test("names the provider when the client says nothing", async () => {
     const refuse = async () => ({ error: {} });
 
-    expect(signInWith("microsoft", refuse)).rejects.toThrow("Microsoft");
+    expect(signInWith("google", refuse)).rejects.toThrow("Google");
   });
 
   test("resolves quietly when the redirect is under way", async () => {
@@ -77,7 +66,5 @@ describe("signInWith", () => {
 describe("providerName", () => {
   test("gives each provider the name people call it", () => {
     expect(providerName("google")).toBe("Google");
-    expect(providerName("microsoft")).toBe("Microsoft");
-    expect(providerName("okta")).toBe("Okta");
   });
 });

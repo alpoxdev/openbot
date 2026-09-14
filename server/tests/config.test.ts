@@ -296,12 +296,7 @@ describe("deployment configuration", () => {
   });
 
   /**
-   * Sign-in with more than one identity provider.
-   *
-   * A company mid-migration has some people on Entra and some still on Okta, so more than one at a
-   * time is the normal shape rather than a corner. These assert the shape the sign-in screen reads
-   * and every arrangement that cannot work refusing at start-up, which is the only moment a
-   * misconfiguration is cheap to find.
+   * Leftover first-class Microsoft/Okta env must fail before Google is parsed.
    */
   const SESSION = {
     BETTER_AUTH_SECRET: "a-long-enough-local-development-auth-secret",
@@ -312,94 +307,114 @@ describe("deployment configuration", () => {
   /** What a deployment with no provider has to say before it is allowed to come up. */
   const OPEN = { OPENBOT_SINGLE_USER: "true" };
 
-  test("enables Microsoft, and admits any account until told a directory", () => {
+  const LEFTOVER_MICROSOFT =
+    "MICROSOFT_OAUTH_* is no longer a first-class sign-in provider. Unset MICROSOFT_OAUTH_CLIENT_ID, MICROSOFT_OAUTH_CLIENT_SECRET and MICROSOFT_OAUTH_TENANT_ID. Sign in with Google (GOOGLE_OAUTH_*) or, for a local trial only, set OPENBOT_SINGLE_USER=true. After the deployment boots with Google, you may register Microsoft as a SAML or OpenID Connect provider under Admin → Identity providers.";
+
+  const LEFTOVER_OKTA =
+    "OKTA_OAUTH_* is no longer a first-class sign-in provider. Unset OKTA_OAUTH_CLIENT_ID, OKTA_OAUTH_CLIENT_SECRET and OKTA_OAUTH_ISSUER. Sign in with Google (GOOGLE_OAUTH_*) or, for a local trial only, set OPENBOT_SINGLE_USER=true. After the deployment boots with Google, you may register Okta as a SAML or OpenID Connect provider under Admin → Identity providers.";
+
+  const GOOGLE = {
+    GOOGLE_OAUTH_CLIENT_ID: "google-client-id",
+    GOOGLE_OAUTH_CLIENT_SECRET: "google-client-secret",
+  };
+
+  test("lists Google only when Google is configured", () => {
     const config = loadConfig({
       ...withoutSignIn,
       ...SESSION,
-      MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
-      MICROSOFT_OAUTH_CLIENT_SECRET: "entra-client-secret",
+      ...GOOGLE,
     });
 
-    // `common` is Microsoft's own default and admits personal accounts as well as work ones. A
-    // deployment that means "our staff" has to say so with a directory GUID.
-    expect(config.auth?.microsoft).toEqual({
-      clientId: "entra-client-id",
-      clientSecret: "entra-client-secret",
-      tenantId: "common",
-    });
-    expect(configuredAuthProviders(config.auth)).toEqual(["microsoft"]);
+    expect(configuredAuthProviders(config.auth)).toEqual(["google"]);
+    expect(config.auth).not.toHaveProperty("microsoft");
+    expect(config.auth).not.toHaveProperty("okta");
   });
 
-  test("narrows Microsoft to one directory when given a tenant", () => {
-    const config = loadConfig({
-      ...withoutSignIn,
-      ...SESSION,
-      MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
-      MICROSOFT_OAUTH_CLIENT_SECRET: "entra-client-secret",
-      MICROSOFT_OAUTH_TENANT_ID: "8f2c1e40-0000-0000-0000-000000000000",
-    });
-
-    expect(config.auth?.microsoft?.tenantId).toBe(
-      "8f2c1e40-0000-0000-0000-000000000000",
-    );
+  test.each([
+    "MICROSOFT_OAUTH_CLIENT_ID",
+    "MICROSOFT_OAUTH_CLIENT_SECRET",
+    "MICROSOFT_OAUTH_TENANT_ID",
+  ] as const)("refuses leftover %s even with valid Google", (name) => {
+    expect(() =>
+      loadConfig({
+        ...withoutSignIn,
+        ...SESSION,
+        ...GOOGLE,
+        [name]: "leftover",
+      }),
+    ).toThrow(LEFTOVER_MICROSOFT);
   });
 
-  test("enables Okta against its issuer", () => {
-    const config = loadConfig({
-      ...withoutSignIn,
-      ...SESSION,
-      OKTA_OAUTH_CLIENT_ID: "okta-client-id",
-      OKTA_OAUTH_CLIENT_SECRET: "okta-client-secret",
-      OKTA_OAUTH_ISSUER: "https://example.okta.com/oauth2/default",
-    });
-
-    expect(config.auth?.okta).toEqual({
-      clientId: "okta-client-id",
-      clientSecret: "okta-client-secret",
-      issuer: "https://example.okta.com/oauth2/default",
-    });
+  test.each([
+    "OKTA_OAUTH_CLIENT_ID",
+    "OKTA_OAUTH_CLIENT_SECRET",
+    "OKTA_OAUTH_ISSUER",
+  ] as const)("refuses leftover %s even with valid Google", (name) => {
+    expect(() =>
+      loadConfig({
+        ...withoutSignIn,
+        ...SESSION,
+        ...GOOGLE,
+        [name]: "leftover",
+      }),
+    ).toThrow(LEFTOVER_OKTA);
   });
 
-  test("refuses Okta without an issuer, which names no particular Okta", () => {
+  test("refuses the old Microsoft-only happy path", () => {
+    expect(() =>
+      loadConfig({
+        ...withoutSignIn,
+        ...SESSION,
+        MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
+        MICROSOFT_OAUTH_CLIENT_SECRET: "entra-client-secret",
+      }),
+    ).toThrow(LEFTOVER_MICROSOFT);
+  });
+
+  test("refuses the old Okta-only happy path", () => {
     expect(() =>
       loadConfig({
         ...withoutSignIn,
         ...SESSION,
         OKTA_OAUTH_CLIENT_ID: "okta-client-id",
         OKTA_OAUTH_CLIENT_SECRET: "okta-client-secret",
+        OKTA_OAUTH_ISSUER: "https://example.okta.com/oauth2/default",
       }),
-    ).toThrow("OKTA_OAUTH_ISSUER");
+    ).toThrow(LEFTOVER_OKTA);
   });
 
-  test("refuses an Okta issuer with no credentials behind it", () => {
+  test("refuses leftover Microsoft before leftover Okta when both families are set", () => {
     expect(() =>
       loadConfig({
         ...withoutSignIn,
         ...SESSION,
-        OKTA_OAUTH_ISSUER: "https://example.okta.com/oauth2/default",
+        ...GOOGLE,
+        MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
+        OKTA_OAUTH_CLIENT_ID: "okta-client-id",
       }),
-    ).toThrow("OKTA_OAUTH_CLIENT_ID");
+    ).toThrow(LEFTOVER_MICROSOFT);
   });
 
-  test("carries all three at once, in a fixed order", () => {
-    const config = loadConfig({
-      ...withoutSignIn,
-      ...SESSION,
-      GOOGLE_OAUTH_CLIENT_ID: "google-client-id",
-      GOOGLE_OAUTH_CLIENT_SECRET: "google-client-secret",
-      MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
-      MICROSOFT_OAUTH_CLIENT_SECRET: "entra-client-secret",
-      OKTA_OAUTH_CLIENT_ID: "okta-client-id",
-      OKTA_OAUTH_CLIENT_SECRET: "okta-client-secret",
-      OKTA_OAUTH_ISSUER: "https://example.okta.com/oauth2/default",
-    });
+  test("refuses leftover Microsoft before a half-configured Google pair", () => {
+    expect(() =>
+      loadConfig({
+        ...withoutSignIn,
+        ...SESSION,
+        GOOGLE_OAUTH_CLIENT_ID: "google-client-id",
+        MICROSOFT_OAUTH_CLIENT_ID: "entra-client-id",
+      }),
+    ).toThrow(LEFTOVER_MICROSOFT);
+  });
 
-    // The order the buttons appear in, fixed here so it cannot change with how a .env was written.
-    expect(configuredAuthProviders(config.auth)).toEqual([
-      "google",
-      "microsoft",
-      "okta",
-    ]);
+  test("refuses leftover Okta before a half-configured Google pair", () => {
+    expect(() =>
+      loadConfig({
+        ...withoutSignIn,
+        ...SESSION,
+        GOOGLE_OAUTH_CLIENT_ID: "google-client-id",
+        OKTA_OAUTH_ISSUER: "https://example.okta.com/oauth2/default",
+      }),
+    ).toThrow(LEFTOVER_OKTA);
   });
 
   /**
@@ -426,7 +441,7 @@ describe("deployment configuration", () => {
     // only thing standing between a bare-VM deployment and serving every visitor as an
     // administrator, which is unset by default on exactly that deployment.
     expect(() => loadConfig(withoutSignIn)).toThrow(
-      "No identity provider is configured",
+      "No identity provider is configured. Set GOOGLE_OAUTH_* with BETTER_AUTH_SECRET and BETTER_AUTH_URL, or set OPENBOT_SINGLE_USER=true to run with one administrator and no sign-in. Refusing to start rather than serving a deployment where every visitor is an administrator.",
     );
   });
 
@@ -439,7 +454,7 @@ describe("deployment configuration", () => {
 
   test("refuses a session secret with no provider to use it", () => {
     expect(() => loadConfig({ ...withoutSignIn, ...SESSION })).toThrow(
-      "no identity provider",
+      "BETTER_AUTH_SECRET or BETTER_AUTH_URL is set but no identity provider is. Configure GOOGLE_OAUTH_*, or unset both",
     );
   });
 

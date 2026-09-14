@@ -166,12 +166,6 @@ Two things are worth knowing before pointing a deployment at any gateway. Not ev
 | `OPENBOT_SINGLE_USER`        | One fixed administrator and no sign-in. **Required** when no identity provider is configured, or the deployment refuses to start. Ignored when one is. |
 | `GOOGLE_OAUTH_CLIENT_ID`     | Google OAuth client id.                                                                |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth client secret.                                                            |
-| `MICROSOFT_OAUTH_CLIENT_ID`  | Microsoft Entra ID application id.                                                     |
-| `MICROSOFT_OAUTH_CLIENT_SECRET` | Microsoft Entra ID client secret.                                                   |
-| `MICROSOFT_OAUTH_TENANT_ID`  | Directory to admit. `common` by default, which admits personal accounts too; a GUID admits one directory. |
-| `OKTA_OAUTH_CLIENT_ID`       | Okta client id.                                                                        |
-| `OKTA_OAUTH_CLIENT_SECRET`   | Okta client secret.                                                                    |
-| `OKTA_OAUTH_ISSUER`          | Which Okta, for example `https://example.okta.com/oauth2/default`.                     |
 | `BETTER_AUTH_SECRET`         | At least 32 characters. Required with any provider.                                    |
 | `BETTER_AUTH_URL`            | Public API server base URL, where OAuth callbacks return. Required with any provider.  |
 | `TRUSTED_ORIGINS`            | Comma-separated app origins accepted by the API, plus every host in a registered OIDC provider's discovery document. |
@@ -185,10 +179,11 @@ configure, because a public URL where every visitor is an administrator fails si
 does not enter into it. `.env.example` ships the line switched on, so a clone runs with no
 configuration at all.
 
-**Any one provider turns sign-in on**, and several may be configured at once. Each provider's id and
-secret must be set together, Okta additionally needs its issuer, and any of them requires
+**Google turns env sign-in on.** Company directories are registered while the deployment runs, under
+Admin → Identity providers. Google's id and secret must be set together, and require
 `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `INITIAL_ADMIN_EMAILS`. Every incomplete combination is
-refused at start-up rather than at somebody's first attempt to sign in.
+refused at start-up rather than at somebody's first attempt to sign in. Leftover `MICROSOFT_OAUTH_*`
+or `OKTA_OAUTH_*` also refuse at start-up.
 
 `INITIAL_ADMIN_EMAILS` is required because nothing else grants the administrator role at first: an
 address it names becomes an administrator at every sign-in and cannot be demoted from the People
@@ -209,8 +204,7 @@ administrator sees the same list and can remove any of it, and a provider outliv
 added it. The client secret and any SAML signing material are encrypted at rest with
 `KEY_ENCRYPTION_KEY`.
 
-The redirect URI to register with each provider is `<BETTER_AUTH_URL>/api/auth/callback/<provider>`,
-where `<provider>` is `google`, `microsoft` or `okta`.
+The redirect URI to register for Google is `<BETTER_AUTH_URL>/api/auth/callback/google`.
 
 `OPENBOT_PUBLIC_URL` and `OPENBOT_APP_URL` matter only for a connector each person connects their own account to, such as Google Drive.
 

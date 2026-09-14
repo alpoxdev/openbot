@@ -35,9 +35,12 @@ This template renders nothing.
   nobody without the addresses. An earlier version of this check accepted admin emails alone, which
   passed the install and then crash-looped on the first boot, so both are checked and named apart.
 */}}
-{{- $provider := or .Values.config.auth.google.clientId .Values.config.auth.microsoft.clientId .Values.config.auth.okta.clientId -}}
+{{- if or (hasKey .Values.config.auth "microsoft") (hasKey .Values.config.auth "okta") (hasKey .Values.secrets "microsoftClientSecret") (hasKey .Values.secrets "oktaClientSecret") }}
+{{- fail "config.auth.microsoft, config.auth.okta, secrets.microsoftClientSecret and secrets.oktaClientSecret are removed. Configure config.auth.google. After a Google-backed install you may register Microsoft or Okta under Admin → Identity providers. Do not inject leftover MICROSOFT_OAUTH_* or OKTA_OAUTH_*." }}
+{{- end }}
+{{- $provider := .Values.config.auth.google.clientId -}}
 {{- if and (not .Values.config.singleUser) (not $provider) }}
-{{- fail "Nobody could sign in. Configure config.auth.google, config.auth.microsoft or config.auth.okta, or set config.singleUser=true for a local trial where every request is one fixed administrator." }}
+{{- fail "Nobody could sign in. Configure config.auth.google, or set config.singleUser=true for a local trial where every request is one fixed administrator." }}
 {{- end }}
 
 {{- if and $provider (not .Values.config.initialAdminEmails) }}
@@ -46,10 +49,6 @@ This template renders nothing.
 
 {{- if and $provider (not .Values.config.publicUrl) }}
 {{- fail "Sign-in needs somewhere to come back to. Set config.publicUrl to the address people reach this deployment at, which is where the OAuth callback lands." }}
-{{- end }}
-
-{{- if and .Values.config.auth.okta.clientId (not .Values.config.auth.okta.issuer) }}
-{{- fail "config.auth.okta.issuer is required alongside the Okta client, such as https://example.okta.com/oauth2/default. It is what makes it a particular Okta rather than Okta in general." }}
 {{- end }}
 
 {{- /*
@@ -243,7 +242,7 @@ This template renders nothing.
   chart. Checked only when this chart holds the secret: from an existing Secret or an external store
   it is not readable at template time, and refusing on a guess would refuse installs that are fine.
 */}}
-{{- if or .Values.config.auth.google.clientId .Values.config.auth.microsoft.clientId .Values.config.auth.okta.clientId }}
+{{- if .Values.config.auth.google.clientId }}
 {{- if and (not .Values.secrets.betterAuthSecret) (not .Values.secrets.existingSecret) (not .Values.externalSecrets.enabled) }}
 {{- fail "An identity provider is configured but secrets.betterAuthSecret is not. Sessions are signed with it and the server refuses to start without it. Generate one with: openssl rand -base64 32" }}
 {{- end }}
@@ -263,7 +262,7 @@ This template renders nothing.
   state, so the refusal above passed and the pod still crash-looped.
 */}}
 {{- if .Values.externalSecrets.enabled }}
-{{- if or .Values.config.auth.google.clientId .Values.config.auth.microsoft.clientId .Values.config.auth.okta.clientId }}
+{{- if .Values.config.auth.google.clientId }}
 {{- $named := list }}
 {{- range .Values.externalSecrets.data }}{{- $named = append $named .secretKey }}{{- end }}
 {{- if not (has "better-auth-secret" $named) }}

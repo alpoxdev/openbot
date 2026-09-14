@@ -4,9 +4,9 @@ import { client } from "@/lib/client";
 /**
  * An identity provider a company registered, rather than one this deployment was configured with.
  *
- * The three in the environment are Google, Entra and Okta. These are somebody's own: registered
- * while the deployment is running, from metadata their identity team supplied, and there can be
- * several. A company mid-merger has two.
+ * Google is configured in the environment. These are somebody's own: registered while the
+ * deployment is running, from metadata their identity team supplied, and there can be several. A
+ * company mid-merger has two.
  */
 export type IdentityProvider = {
   providerId: string;

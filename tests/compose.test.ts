@@ -439,7 +439,7 @@ test("runs migrations after PostgreSQL becomes healthy", () => {
   expect(compose).toContain('"drizzle-kit", "migrate"');
 });
 
-test("builds the deployment image with Playwright's Chromium payload only", () => {
+test("builds the deployment image with Chromium OS deps, not a Cloak binary", () => {
   for (const dockerfile of [rootDockerfile(), agentComputerDockerfile()]) {
     expect(dockerfile).toContain(
       "FROM node:24.18.1-bookworm-slim AS node-toolchain",
@@ -447,7 +447,7 @@ test("builds the deployment image with Playwright's Chromium payload only", () =
     expect(dockerfile).toContain("FROM ubuntu:24.04");
     expect(dockerfile).not.toContain("mcr.microsoft.com/playwright");
     expect(dockerfile).toContain("ARG PLAYWRIGHT_VERSION=1.62.1");
-    expect(dockerfile).toContain("ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright");
+    expect(dockerfile).not.toContain("ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright");
     expect(dockerfile).toContain(
       "COPY --from=node-toolchain /usr/local /usr/local",
     );
@@ -455,13 +455,22 @@ test("builds the deployment image with Playwright's Chromium payload only", () =
       'bunx --bun "playwright@' +
         "$" +
         "{PLAYWRIGHT_VERSION}" +
-        '" install --with-deps chromium',
+        '" install-deps chromium',
     );
+    expect(dockerfile).not.toContain("install --with-deps chromium");
+    expect(dockerfile).not.toContain("cloakbrowser install");
+    expect(dockerfile).not.toMatch(/chromium-v/);
+    expect(dockerfile).toContain("ENV CLOAKBROWSER_AUTO_UPDATE=false");
+    expect(dockerfile).toContain(
+      "ENV CLOAKBROWSER_CACHE_DIR=/profiles/.cloakbrowser",
+    );
+    expect(dockerfile).not.toContain("ENV HOME=/profiles");
     expect(dockerfile).not.toMatch(/\bnodejs\b|\bnpm\b/);
     expect(dockerfile).not.toMatch(
       /\binstall(?:\s+--with-deps)?\s+(firefox|webkit)\b/,
     );
   }
+  expect(agentComputerDockerfile()).toContain("start-period=1500s");
 
   const compose = composeFile();
   expect(compose).toContain(

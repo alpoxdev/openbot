@@ -198,6 +198,8 @@ computers:
   # the process default, which is a handful and thirty minutes.
   maxBrowsers: ""
   browserIdleMs: ""
+  # Optional CloakBrowser license for the latest Chromium. Put the key in extraEnv as
+  # CLOAKBROWSER_LICENSE_KEY rather than here; this chart does not invent a secret for it.
 
   persistence:
     # EMPTY MEANS THE CLUSTER'S DEFAULT CLASS. Naming `gp3` or `pd-balanced` is how a chart stops

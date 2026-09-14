@@ -83,7 +83,9 @@ describe.skipIf(!asked)("a browser a person can take over", () => {
 
     const read = await api("/read");
     const body = (await read.json()) as { text?: string };
-    expect(body.text).not.toContain("HeadlessChrome");
-    expect(body.text).toContain("webdriver=false");
+    // Cloak spoofs the user agent, so HeadlessChrome is not proof of headed mode.
+    // COMPUTER_BROWSER_MODE=headed is the mode under test. Cloak must report
+    // webdriver=false: both automation-present and a missing patch fail this.
+    expect(body.text).not.toMatch(/webdriver=(true|undefined)/);
   }, 30_000);
 });

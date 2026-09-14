@@ -110,6 +110,12 @@ services:
       # minutes; closing a browser costs only a relaunch, because the profile is on the volume below.
       COMPUTER_MAX_BROWSERS: ${COMPUTER_MAX_BROWSERS:-}
       COMPUTER_BROWSER_IDLE_MS: ${COMPUTER_BROWSER_IDLE_MS:-}
+      CLOAKBROWSER_LICENSE_KEY: ${CLOAKBROWSER_LICENSE_KEY:-}
+      CLOAKBROWSER_CACHE_DIR: ${CLOAKBROWSER_CACHE_DIR:-}
+      CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-}
+      CLOAKBROWSER_VERSION: ${CLOAKBROWSER_VERSION:-}
+      CLOAKBROWSER_RELEASE_CHANNEL: ${CLOAKBROWSER_RELEASE_CHANNEL:-}
+      CLOAKBROWSER_BINARY_PATH: ${CLOAKBROWSER_BINARY_PATH:-}
     volumes:
       - agent-workspace:/workspace
       # Chromium's user-data directory is volume-backed so logins survive container restarts.
@@ -202,6 +208,14 @@ services:
       COMPUTER_TOKEN: ${COMPUTER_TOKEN:-openbot-dev-computer-token}
       # Forwarded into every per-Bot computer the supervisor creates.
       COMPUTER_BROWSER_MODE: ${COMPUTER_BROWSER_MODE:-headless}
+      CLOAKBROWSER_LICENSE_KEY: ${CLOAKBROWSER_LICENSE_KEY:-}
+      CLOAKBROWSER_CACHE_DIR: ${CLOAKBROWSER_CACHE_DIR:-}
+      CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-}
+      CLOAKBROWSER_VERSION: ${CLOAKBROWSER_VERSION:-}
+      CLOAKBROWSER_RELEASE_CHANNEL: ${CLOAKBROWSER_RELEASE_CHANNEL:-}
+      CLOAKBROWSER_BINARY_PATH: ${CLOAKBROWSER_BINARY_PATH:-}
+      COMPUTER_MAX_BROWSERS: ${COMPUTER_MAX_BROWSERS:-}
+      COMPUTER_BROWSER_IDLE_MS: ${COMPUTER_BROWSER_IDLE_MS:-}
       COMPUTER_IMAGE: ${COMPUTER_IMAGE:-openbot-agent-computer:latest}
       # Which deployment the computers it creates belong to, so two stacks on one Docker host never
       # derive the same container and volume names for the same Bot.

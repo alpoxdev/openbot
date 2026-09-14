@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { chooseEvictions, chooseIdle } from "../src/browser-eviction";
+import { admitBeforeLaunch, chooseEvictions, chooseIdle } from "../src/browser-eviction";
 import { numberFromEnv } from "../src/env";
 
 /**
@@ -65,6 +65,29 @@ describe("keeping the number of running browsers under a cap", () => {
     const chosen = chooseEvictions(running(now - 1000, now), 1);
 
     expect(chosen).toEqual(["bot-0"]);
+  });
+});
+
+describe("admitting a launch before Cloak starts", () => {
+  test("a different Bot at a full cap evicts the live one first", () => {
+    const live = new Map([["live-bot", { usedAt: 1 }]]);
+    expect(admitBeforeLaunch(live, 0, 1, "next-bot")).toEqual({
+      admit: false,
+      evict: "live-bot",
+    });
+  });
+
+  test("an in-flight launch at a cap of one does not start a second Cloak", () => {
+    expect(admitBeforeLaunch(new Map(), 1, 1, "next-bot")).toEqual({
+      admit: false,
+      evict: undefined,
+    });
+  });
+
+  test("room under the cap admits without eviction", () => {
+    expect(admitBeforeLaunch(running(1, 2), 0, 8, "next-bot")).toEqual({
+      admit: true,
+    });
   });
 });
 

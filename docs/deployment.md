@@ -22,7 +22,7 @@ those digests rather than a moving tag is what [releasing.md](releasing.md) reco
 
 ## What is in the image, and what is not
 
-**In it:** the built app, the API, and Chromium. One port, 3001. The browser listens on 4100 inside
+**In it:** the built app, the API, and CloakBrowser. One port, 3001. The browser listens on 4100 inside
 the container and is deliberately not published: it holds real logins and its only caller is the
 process beside it.
 
@@ -212,11 +212,12 @@ which makes them the shortest path from nothing to a running deployment.
 
 ## Known costs
 
-**The browser images carry only the Chromium browser family.** The all-in-one Dockerfile and the
+**The browser images carry Chromium OS libraries, not a Cloak binary.** The all-in-one Dockerfile and the
 published `agent-computer` Dockerfile both build from Ubuntu and run Playwright's pinned
-`install --with-deps chromium` path, so Firefox and WebKit are never introduced into the final image
-layers. Keep that Playwright version matched to `agent-computer/package.json`; changing one without
-the other can make the browser protocol and executable revision diverge. The images keep the
+`install-deps chromium` path for fonts and shared libraries. The Cloak Chromium binary is downloaded
+on first computer start from cloakbrowser.dev (GitHub releases as fallback) into
+`/profiles/.cloakbrowser`. First start therefore needs HTTPS egress. Keep that Playwright version
+matched to `agent-computer/package.json`. The images keep the
 baseline Node command-line tools (`node`, `npm`, and `npx`) from the official Node 24.18.1 image.
 Measured as local zstd OCI layer descriptors against the previous Playwright-base `agent-computer`
 image, the compressed image fell from 884.2 MiB to 535.0 MiB on arm64 and from 894.6 MiB to

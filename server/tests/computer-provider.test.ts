@@ -127,6 +127,39 @@ describe("shared computer provider", () => {
     });
   });
 
+  test("retries connection-refused health checks until ready", async () => {
+    let attempts = 0;
+    const provider = createSharedComputerProvider({
+      baseUrl: "http://computer:4100",
+      readyTimeoutMs: 5_000,
+      fetchImpl: async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          throw new TypeError("Unable to connect. Is the computer running?");
+        }
+        return Response.json({ status: "ok" });
+      },
+    });
+    expect(await provider.status("sales")).toEqual({
+      botId: "sales",
+      state: "ready",
+    });
+    expect(attempts).toBe(3);
+  });
+
+  test("reports unreachable after the ready deadline if health never answers", async () => {
+    const provider = createSharedComputerProvider({
+      baseUrl: "http://computer:4100",
+      readyTimeoutMs: 20,
+      fetchImpl: async () => {
+        throw new TypeError("Unable to connect. Is the computer running?");
+      },
+    });
+    const status = await provider.status("sales");
+    expect(status.state).toBe("unreachable");
+    expect(status.botId).toBe("sales");
+  });
+
   test("posts /computers/stop with identity and token and returns wasRunning", async () => {
     const requests: {
       path: string;

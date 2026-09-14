@@ -170,7 +170,16 @@ app.get("/computers", async (context) => {
   }
 });
 
-serve({ port, fetch: app.fetch, idleTimeout: 120 });
+serve({
+  port,
+  idleTimeout: 120,
+  fetch(request, server) {
+    if (/\/computers\/[^/]+\/ensure$/.test(new URL(request.url).pathname)) {
+      server.timeout(request, 0);
+    }
+    return app.fetch(request);
+  },
+});
 
 console.info(
   `Supervisor listening on http://localhost:${port} (image ${image}${runtime ? `, runtime ${runtime}` : ""})`,

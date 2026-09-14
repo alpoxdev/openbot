@@ -47,7 +47,7 @@ export function createDockerSupervisorProvider(
 ): ComputerProvider {
   const doFetch = options.fetchImpl ?? fetch;
   const base = options.baseUrl.replace(/\/$/, "");
-  const timeoutMs = options.timeoutMs ?? 120_000;
+  const timeoutMs = options.timeoutMs ?? 1_620_000;
   /*
    * Numeric, never `localhost`.
    *

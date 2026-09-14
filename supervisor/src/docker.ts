@@ -326,7 +326,7 @@ function holdsCurrentToken(
 }
 
 /** Long enough for a cold start with a large image, short enough that a caller is not left hanging. */
-const DEFAULT_READY_TIMEOUT_MS = 60_000;
+const DEFAULT_READY_TIMEOUT_MS = 1_560_000;
 
 /**
  * Wait until the computer actually answers.

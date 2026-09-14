@@ -232,7 +232,8 @@ if ! docker compose run --rm --build migrate >"$LOGS/migrate.log" 2>&1; then
   red "  Log: $LOGS/migrate.log"
   exit 1
 fi
-wait_for "http://localhost:$COMPUTER_PORT/health" "agent-computer"
+# 26 min: first-run CloakBrowser download
+wait_for "http://localhost:$COMPUTER_PORT/health" "agent-computer" 1560
 wait_for "http://localhost:$BOT_PORT/health" "agent-bot"
 wait_for "http://localhost:$LANGGRAPH_PORT/health" "agent-langgraph"
 

@@ -135,6 +135,10 @@ spec:
             - name: COMPUTER_BROWSER_IDLE_MS
               value: {{ . | quote }}
             {{- end }}
+            - name: CLOAKBROWSER_CACHE_DIR
+              value: /profiles/.cloakbrowser
+            - name: CLOAKBROWSER_AUTO_UPDATE
+              value: "false"
             {{- with .Values.computers.extraEnv }}
 {{ toYaml . | indent 12 }}
             {{- end }}
@@ -161,8 +165,8 @@ spec:
             httpGet:
               path: /health
               port: http
-            periodSeconds: 5
-            failureThreshold: 60
+            periodSeconds: 10
+            failureThreshold: 162
           {{- with .Values.computers.resources }}
           resources:
 {{ toYaml . | indent 12 }}

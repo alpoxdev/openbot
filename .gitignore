@@ -4,6 +4,7 @@
 # Claude Code: .claude/skills/ is shared, the rest is local state
 .claude/worktrees/
 .claude/settings.local.json
+.claude/*.jsonl
 docs/superpowers/
 
 docs/specs/
@@ -31,3 +32,56 @@ app/.tanstack/
 # it is what makes that fetch reproducible, and ignoring it meant every build resolved the dependency
 # afresh, so CI and a customer install could take different subchart versions with no diff to show it.
 charts/*/charts/
+
+# Local indexes and agent state — never source.
+.codegraph/
+.omo/
+.omc/
+.pi/
+.senpi/
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Logs, caches, coverage, local DBs
+*.log
+*.tsbuildinfo
+.eslintcache
+.cache/
+.turbo/
+.parcel-cache/
+coverage/
+htmlcov/
+.nyc_output/
+playwright-report/
+test-results/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Python agent harnesses
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Rust / Tauri extra (desktop/.gitignore already covers target/)
+*.pdb

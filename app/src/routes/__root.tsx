@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { RouterContext } from "../router-context";
-import "@fontsource-variable/inter/wght.css";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,

@@ -6,7 +6,7 @@
  *
  * It lives here rather than in `index.ts` because that file imports Playwright at module scope, so
  * anything in it needs Chrome merely to be imported by a test. The same reasoning moved the control
- * state machine out: if a decision matters, it does not belong next to `chromium.launch()`.
+ * state machine out: if a decision matters, it does not belong next to the launch.
  */
 
 /**

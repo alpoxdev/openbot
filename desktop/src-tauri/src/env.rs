@@ -844,7 +844,7 @@ mod tests {
             .map(|(published, variable)| {
                 (
                     (*variable).to_string(),
-                    format!("ghcr.io/copilotkit/openbot-{published}@sha256:abc"),
+                    format!("ghcr.io/alpoxdev/openbot-{published}@sha256:abc"),
                 )
             })
             .collect()
@@ -1608,7 +1608,7 @@ mod model_tests {
             .map(|(published, variable)| {
                 (
                     (*variable).to_string(),
-                    format!("ghcr.io/copilotkit/openbot-{published}@sha256:abc"),
+                    format!("ghcr.io/alpoxdev/openbot-{published}@sha256:abc"),
                 )
             })
             .collect()

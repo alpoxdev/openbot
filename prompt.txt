@@ -20,7 +20,7 @@ A. A LOCAL COPY, FROM THE PUBLISHED IMAGE
 
   docker run -p 3001:3001 --env-file .env \
     -e EMBEDDED_POSTGRES=on -v openbot-data:/var/lib/postgresql \
-    ghcr.io/copilotkit/openbot:latest
+    ghcr.io/alpoxdev/openbot:latest
 
 One port. The app is on 3001 as well, so open http://localhost:3001, not 3010. `latest` is the most
 recent release; a version tag such as `:v0.0.9` pins one.

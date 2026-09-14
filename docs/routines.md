@@ -108,7 +108,7 @@ separate, because as far as the channel is concerned, that is exactly what it is
 
 This ships the core: creating, listing, changing and deleting routines from chat; the schedule, the
 cap and the fatigue rule; the worker that fires them. Four follow-ups are tracked in
-[#193](https://github.com/CopilotKit/OpenBot/issues/193) and deliberately not in this pass; the first
+[#193](https://github.com/alpoxdev/openbot/issues/193) and deliberately not in this pass; the first
 of them has since been closed. Audit rows now say what started the run they came out of, so a
 routine's action is told apart from the same person's own by reading the row rather than by
 correlating timestamps against `routine_runs`. See [Architecture](architecture.md#what-started-a-run). Still open:

@@ -6,8 +6,8 @@
 
 [**copilotkit.ai/openbot**](https://copilotkit.ai/openbot) · [**Quick start**](#quick-start) · [**Features**](#features) · [**Bring your own agent**](#bring-your-own-agent) · [**Architecture**](#architecture) · [**Docs**](docs/README.md)
 
-[![CI](https://github.com/CopilotKit/openbot/actions/workflows/ci.yml/badge.svg)](https://github.com/CopilotKit/openbot/actions/workflows/ci.yml)
-[![security](https://github.com/CopilotKit/openbot/actions/workflows/security_zizmor.yml/badge.svg)](https://github.com/CopilotKit/openbot/actions/workflows/security_zizmor.yml)
+[![CI](https://github.com/alpoxdev/openbot/actions/workflows/ci.yml/badge.svg)](https://github.com/alpoxdev/openbot/actions/workflows/ci.yml)
+[![security](https://github.com/alpoxdev/openbot/actions/workflows/security_zizmor.yml/badge.svg)](https://github.com/alpoxdev/openbot/actions/workflows/security_zizmor.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 ![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
@@ -116,7 +116,7 @@ One image carries the app, the API, the browser the Bots drive, and optionally P
 # The published image. Nothing to clone and nothing to build.
 docker run -p 3001:3001 --env-file .env \
   -e EMBEDDED_POSTGRES=on -v openbot-data:/var/lib/postgresql \
-  ghcr.io/copilotkit/openbot:latest
+  ghcr.io/alpoxdev/openbot:latest
 
 # Or the tree you have in front of you.
 docker build -t openbot .

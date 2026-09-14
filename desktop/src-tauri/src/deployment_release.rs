@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::deployment;
 
-const LATEST_RELEASE: &str = "https://api.github.com/repos/CopilotKit/OpenBot/releases/latest";
+const LATEST_RELEASE: &str = "https://api.github.com/repos/alpoxdev/openbot/releases/latest";
 
 /// Only new deployments consult GitHub. The fetcher records the exact tag after the source and
 /// image manifest have both downloaded successfully; restarts and repairs retain that pin.

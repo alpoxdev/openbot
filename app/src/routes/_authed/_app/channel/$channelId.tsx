@@ -1,4 +1,7 @@
-import { IconDeviceDesktop, IconSettings } from "@tabler/icons-react";
+import {
+  IconDeviceDesktop,
+  IconSettings,
+} from "@tabler/icons-react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -13,6 +16,7 @@ import { AgentProfile } from "@/components/agents/agent-profile";
 import { hasUnseenActivity } from "@/components/app-sidebar/app-sidebar";
 import { ChannelAvatar } from "@/components/channels/avatar";
 import { ChannelChat } from "@/components/channels/channel-chat";
+import { MembersHeaderButton } from "@/components/channels/members-rail";
 import { ActivityLog } from "@/components/computer/activity-log";
 import { ComputerView } from "@/components/computer/computer-view";
 import { useNeedsYou } from "@/components/computer/needs-you";
@@ -175,7 +179,7 @@ function RouteComponent() {
       }
     >
       <div className="flex flex-col">
-        <div className="h-12 border-b border-border sticky top-0 flex flex-row items-center justify-between px-3 gap-2">
+        <div className="sticky top-0 flex h-11 flex-row items-center justify-between gap-2 border-b border-border px-3">
           {/* Keyed on the displayed name so cold channel loads animate the resolved name, not the id. */}
           <div className="flex min-w-0 items-center gap-1.5">
             <SidebarToggle />
@@ -215,7 +219,10 @@ function RouteComponent() {
               {channel.data?.name ?? "Channel"}
             </motion.span>
           </div>
-          <div className="flex flex-row gap-1.5">
+          <div className="flex flex-row items-center gap-0.5">
+            <MembersHeaderButton
+              agentIds={channel.data?.agentIds ?? []}
+            />
             <Button
               aria-label={
                 needsYou

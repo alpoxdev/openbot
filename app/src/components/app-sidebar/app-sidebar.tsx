@@ -233,7 +233,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar {...props}>
-      <SidebarHeader className="h-12 p-2">
+      <SidebarHeader className="h-11 px-2 py-1.5">
         <SidebarMenu>
           <SidebarMenuItem className="flex flex-row gap-1.5">
             <SidebarMenuButton
@@ -266,7 +266,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarGroup className="gap-px">
             <SidebarMenuItem>
-              <InputGroup className="bg-background text-sm rounded-lg h-9">
+              <InputGroup className="h-8 rounded-md bg-background text-sm">
                 <InputGroupInput
                   aria-label="Search channels"
                   onChange={(event) => setSearch(event.target.value)}

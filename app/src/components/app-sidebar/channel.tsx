@@ -113,7 +113,7 @@ export const Channel = memo(function Channel({
             to="/channel/$channelId"
             params={{ channelId }}
             type="button"
-            className="flex flex-row py-2 px-2 gap-2 items-center w-full hover:bg-foreground/5 rounded-lg [contain-intrinsic-size:auto_3.25rem] [content-visibility:auto]"
+            className="flex w-full flex-row items-center gap-2 rounded-md px-2 py-1.5 hover:bg-foreground/5 [contain-intrinsic-size:auto_2.75rem] [content-visibility:auto]"
             activeProps={{
               className: "bg-foreground/5",
             }}
@@ -121,7 +121,7 @@ export const Channel = memo(function Channel({
             <div className="">
               <ChannelAvatar
                 participantIds={participantIds}
-                size={32}
+                size={28}
                 typing={busy}
               />
             </div>

@@ -99,6 +99,7 @@ export type SharedComputerProviderOptions = {
   token?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  readyTimeoutMs?: number;
 };
 type SharedComputerEntry = {
   botId: string;
@@ -120,6 +121,7 @@ export function createSharedComputerProvider(
   const base = options.baseUrl.replace(/\/$/, "");
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 45_000;
+  const readyTimeoutMs = options.readyTimeoutMs ?? 1_620_000;
 
   function headers(botId?: string): Record<string, string> {
     return {
@@ -166,19 +168,29 @@ export function createSharedComputerProvider(
     },
 
     async status(botId: string): Promise<ComputerStatus> {
-      try {
-        await call("/health", "GET", botId);
-        return { botId, state: "ready" };
-      } catch (error) {
-        return {
-          botId,
-          state: "unreachable",
-          reason:
-            error instanceof Error && error.message.length > 0
-              ? error.message
-              : "Unknown failure.",
-        };
+      const deadline = Date.now() + readyTimeoutMs;
+      let last: unknown;
+      while (Date.now() <= deadline) {
+        try {
+          await call("/health", "GET", botId);
+          return { botId, state: "ready" };
+        } catch (error) {
+          last = error;
+          const waiting =
+            error instanceof Error &&
+            error.message.includes("could not be reached");
+          if (!waiting || Date.now() >= deadline) break;
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
+        }
       }
+      return {
+        botId,
+        state: "unreachable",
+        reason:
+          last instanceof Error && last.message.length > 0
+            ? last.message
+            : "Unknown failure.",
+      };
     },
 
     async stop(botId: string): Promise<{ wasRunning: boolean }> {

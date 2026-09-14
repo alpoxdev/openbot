@@ -165,8 +165,8 @@ spec:
             httpGet:
               path: /health
               port: http
-            periodSeconds: 5
-            failureThreshold: 60
+            periodSeconds: 10
+            failureThreshold: 162
           {{- with .Values.computers.resources }}
           resources:
 {{ toYaml . | indent 12 }}

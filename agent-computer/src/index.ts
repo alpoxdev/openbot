@@ -1,5 +1,8 @@
 import { serve } from "bun";
 import type { Page } from "playwright";
+import { join } from "node:path";
+import { ensureBinary } from "cloakbrowser";
+import { redactSecrets } from "./cloak-redact";
 import { parseAriaSnapshot, type SnapshotElement } from "./aria-snapshot";
 import { browserModeFromEnv } from "./browser-mode";
 import {
@@ -90,6 +93,49 @@ console.info(
     display: VIRTUAL_DISPLAY?.name ?? null,
   }),
 );
+
+if (!process.env.CLOAKBROWSER_CACHE_DIR?.trim()) {
+  process.env.CLOAKBROWSER_CACHE_DIR = join(
+    process.env.PROFILES_DIR ?? "/profiles",
+    ".cloakbrowser",
+  );
+}
+if (!process.env.HOME?.trim()) {
+  process.env.HOME = process.env.PROFILES_DIR ?? "/profiles";
+}
+
+let cloakInstall: Promise<void> | undefined;
+async function installCloakBinary(): Promise<void> {
+  cloakInstall ??= (async () => {
+    const deadline = AbortSignal.timeout(25 * 60_000);
+    try {
+      await Promise.race([
+        ensureBinary(),
+        new Promise<never>((_, reject) => {
+          deadline.addEventListener("abort", () =>
+            reject(
+              new Error("CloakBrowser download timed out after 25 minutes."),
+            ),
+          );
+        }),
+      ]);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          type: "computer-cloak-install",
+          error: redactSecrets(
+            error instanceof Error ? error.message : String(error),
+          ),
+          hint: "Download the official binary from cloakbrowser.dev, or set CLOAKBROWSER_LICENSE_KEY / CLOAKBROWSER_BINARY_PATH.",
+        }),
+      );
+      process.exit(1);
+    }
+  })();
+  await cloakInstall;
+}
+
+await installCloakBinary();
 
 /*
  * A whole port in range, or the default: a fraction never binds and an out-of-range one
@@ -215,7 +261,7 @@ const workspace = createWorkspace(process.env.WORKSPACE_DIR ?? "/workspace");
 /**
  * The Bot's browser and the profile that outlives it. See profiles.ts.
  *
- * `chromium.launch()` gives a fresh anonymous profile every time. Persistent profiles live on a
+ * A fresh anonymous profile would lose every login. Persistent profiles live on a
  * mounted volume so sign-in state survives the container.
  */
 /**
@@ -785,6 +831,7 @@ serve<StreamData>({
         // difference between "no identity here" and "identity broken" is visible.
         identity: await identity(),
         browserMode: BROWSER_MODE,
+        browserEngine: "cloak",
       });
     }
 
@@ -1255,7 +1302,8 @@ async function performAction(
 }
 
 function describe(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  const raw = error instanceof Error ? error.message : fallback;
+  return redactSecrets(raw);
 }
 
 /**

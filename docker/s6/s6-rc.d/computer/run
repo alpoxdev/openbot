@@ -19,4 +19,7 @@ fi
 cd /app/agent-computer
 export PORT=4100
 export WORKSPACE_DIR=/workspace
+export HOME=/profiles
+export CLOAKBROWSER_CACHE_DIR=/profiles/.cloakbrowser
+export CLOAKBROWSER_AUTO_UPDATE="${CLOAKBROWSER_AUTO_UPDATE:-false}"
 exec s6-setuidgid pwuser /usr/local/bin/bun src/index.ts

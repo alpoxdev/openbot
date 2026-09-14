@@ -37,6 +37,7 @@ charts/*/charts/
 .codegraph/
 .omo/
 .omc/
+.gjc/
 .pi/
 .senpi/
 .cursor/

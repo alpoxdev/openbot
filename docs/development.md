@@ -35,6 +35,26 @@ Use `bash scripts/stop.sh` to take it down: the app, the routine worker, the API
 
 Use `bun run dev` only when you want the app and API server without starting the Docker Bots and computers.
 
+### Desktop development
+
+Run the desktop shell from its own directory:
+
+```sh
+cd desktop
+bun install
+bun run tauri dev
+```
+
+This mode uses the current checkout instead of downloading a GitHub release.
+Docker or Podman must be running: plan sign-in and setup build the required
+container images locally. The first build can take several minutes and still
+needs network access for base images and dependencies.
+
+The setup wizard uses the checkout's configuration and can update its `.env`
+when you save setup choices. It does not create a release manifest or pin a
+published release in the checkout. Packaged desktop builds continue to install
+and use a published release.
+
 | Service           | Port                       |
 | ----------------- | -------------------------- |
 | `app`             | 3010                       |

@@ -100,6 +100,7 @@ pub fn selected_services(harness: bool, bots: BundledBots) -> Vec<&'static str> 
 /// The server first, because the app serves a page that talks to it and the worker claims routines
 /// it owns. Nothing here waits on the others: each is supervised on its own and reports its own
 /// state, so a worker that dies does not take the window with it.
+#[cfg(not(dev))]
 pub const HOST_PROCESSES: [HostProcess; 3] = [
     HostProcess {
         name: "server",
@@ -124,6 +125,38 @@ pub const HOST_PROCESSES: [HostProcess; 3] = [
         package_script: "",
     },
 ];
+
+#[cfg(dev)]
+pub const HOST_PROCESSES: [HostProcess; 3] = [
+    HostProcess {
+        name: "server",
+        cwd: "server",
+        script: "src/index.ts",
+        package_script: "",
+    },
+    HostProcess {
+        name: "app",
+        cwd: "app",
+        script: "",
+        package_script: "dev",
+    },
+    HostProcess {
+        name: "worker",
+        cwd: "worker",
+        script: "src/index.ts",
+        package_script: "",
+    },
+];
+
+#[cfg(dev)]
+fn local_build_services(harness: bool, bots: BundledBots) -> Vec<&'static str> {
+    let mut requested = selected_services(harness, bots);
+    requested.push("migrate");
+    requested
+        .into_iter()
+        .filter(|service| *service != "agent-harness" && *service != "postgres")
+        .collect()
+}
 
 #[derive(Clone, Copy, Debug)]
 /// One of the three processes Compose does not run.
@@ -176,6 +209,12 @@ pub type Secrets = std::collections::BTreeMap<String, String>;
 fn compose_command(engine: &Address, root: &Path, secrets: &Secrets) -> Command {
     let mut command = engine.command();
     command.current_dir(root).args(["compose"]).envs(secrets);
+    #[cfg(dev)]
+    {
+        for (published, variable) in crate::deployment::IMAGE_VARIABLES {
+            command.env(variable, crate::deployment::local_reference(published));
+        }
+    }
     command
 }
 
@@ -191,22 +230,50 @@ pub fn pull(
     secrets: &Secrets,
     on_complete: impl FnOnce(crate::pull_metrics::PullMetrics),
 ) -> Result<(), Problem> {
-    let Some(json_progress) = crate::pull_metrics::compose_pull_progress(engine) else {
-        return Ok(());
-    };
-    let mut requested = selected_services(harness, bots);
-    requested.push("migrate");
-    let mut command = compose_command(engine, root, secrets);
-    if json_progress {
-        command.args(["--progress", "json"]);
+    #[cfg(dev)]
+    {
+        let buildable = local_build_services(harness, bots);
+        let started = std::time::Instant::now();
+        let output = {
+            let mut command = compose_command(engine, root, secrets);
+            command.args(["build"]).args(&buildable).output()
+        }
+        .map_err(|error| format!("could not build local images: {error}"))?;
+        on_complete(crate::pull_metrics::PullMetrics {
+            outcome: if output.status.success() {
+                crate::telemetry::Outcome::Success
+            } else {
+                crate::telemetry::Outcome::Failure
+            },
+            duration_ms: started.elapsed().as_millis().min(u64::MAX as u128) as u64,
+            bytes: None,
+        });
+        if output.status.success() {
+            return Ok(());
+        }
+        let raw = command_said(&output.stderr);
+        return Err(Problem::with(crate::problem::said_about(&raw), raw));
     }
-    if harness {
-        command.args(["--profile", "harness"]);
+
+    #[cfg(not(dev))]
+    {
+        let Some(json_progress) = crate::pull_metrics::compose_pull_progress(engine) else {
+            return Ok(());
+        };
+        let mut requested = selected_services(harness, bots);
+        requested.push("migrate");
+        let mut command = compose_command(engine, root, secrets);
+        if json_progress {
+            command.args(["--progress", "json"]);
+        }
+        if harness {
+            command.args(["--profile", "harness"]);
+        }
+        command
+            .args(["pull", "--policy", "missing", "--include-deps"])
+            .args(&requested);
+        crate::pull_metrics::run(command, None, json_progress, on_complete)
     }
-    command
-        .args(["pull", "--policy", "missing", "--include-deps"])
-        .args(&requested);
-    crate::pull_metrics::run(command, None, json_progress, on_complete)
 }
 
 /// Raise the containers.
@@ -235,8 +302,11 @@ pub fn up(
     if harness {
         command.args(["--profile", "harness"]);
     }
+    #[cfg(dev)]
+    command.args(["up", "-d", "--build"]);
+    #[cfg(not(dev))]
+    command.args(["up", "-d", "--no-build"]);
     let output = command
-        .args(["up", "-d", "--no-build"])
         .args(&requested)
         .output()
         .map_err(|error| format!("could not run {} compose: {error}", engine.engine.binary()))?;
@@ -253,6 +323,51 @@ pub fn up(
     ))
 }
 
+/// Build the image used by a provider sign-in in a development checkout.
+///
+/// Release builds receive an immutable digest from `container-images.json`; development must
+/// instead build the Dockerfile in this checkout and run that image without a registry lookup.
+#[cfg(dev)]
+pub fn build_sign_in_image(engine: &Address, root: &Path, published: &str) -> Result<(), Problem> {
+    let image = crate::deployment::local_reference(published);
+    build_local_harness(engine, root, &image)
+}
+
+/// Build a selected installed harness in development. The Compose row intentionally has no
+/// `build:` section because release harnesses are registry-only; this direct build supplies the
+/// local equivalent without changing the packaged Compose contract.
+#[cfg(dev)]
+pub fn build_local_harness(engine: &Address, root: &Path, image: &str) -> Result<(), Problem> {
+    let source_name = local_harness_source(image)
+        .ok_or_else(|| Problem::plain("The selected local Bot image name is invalid."))?;
+    let dockerfile = root.join(source_name).join("Dockerfile");
+    if !dockerfile.is_file() {
+        return Err(Problem::with(
+            "The selected local Bot has no Dockerfile in this checkout.",
+            format!("could not find {}", dockerfile.display()),
+        ));
+    }
+    let dockerfile = dockerfile.to_string_lossy().into_owned();
+    let output = engine
+        .command()
+        .current_dir(root)
+        .args(["build", "--tag", image, "--file", &dockerfile, "."])
+        .output()
+        .map_err(|error| format!("could not build the selected local Bot: {error}"))?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let raw = command_said(&output.stderr);
+    Err(Problem::with(crate::problem::said_about(&raw), raw))
+}
+
+#[cfg(dev)]
+fn local_harness_source(image: &str) -> Option<&str> {
+    image
+        .strip_prefix("openbot-")
+        .and_then(|name| name.strip_suffix(":local"))
+}
+
 /// Apply migrations, once, to completion.
 ///
 /// A release step rather than a start step, for the reason `server/Dockerfile` gives: two replicas
@@ -263,11 +378,14 @@ pub fn migrate(
     root: &Path,
     secrets: &Secrets,
 ) -> Result<(), crate::problem::Problem> {
-    // No `--no-build` here: `compose run` does not take it, and passing it fails on the flag rather
-    // than on anything to do with migrations. Building is prevented the other way, by
-    // `IMAGE_PULL_POLICY=missing` in the environment, which makes the service pull instead.
-    let output = compose_command(engine, root, secrets)
-        .args(["run", "--rm", "migrate"])
+    // No `--no-build` here: `compose run` does not take it. Development explicitly builds this
+    // local service; packaged deployments rely on their pinned image and pull policy.
+    let mut command = compose_command(engine, root, secrets);
+    command.args(["run", "--rm"]);
+    #[cfg(dev)]
+    command.arg("--build");
+    let output = command
+        .arg("migrate")
         .output()
         .map_err(|error| format!("could not run migrations: {error}"))?;
 
@@ -2525,8 +2643,18 @@ fn missing_script(root: &Path) -> Option<String> {
 const APP_SCRIPT: &str = "serve";
 
 /// Where the shell keeps the deployment it manages.
+#[cfg(not(dev))]
 pub fn default_root() -> PathBuf {
     dirs_home().join("OpenBot")
+}
+
+/// The source tree used by `tauri dev`.
+#[cfg(dev)]
+pub fn default_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
 
 /// The deployment directory somebody typed, as a path.
@@ -2547,6 +2675,7 @@ pub fn root_from(typed: &str) -> PathBuf {
     PathBuf::from(typed.trim())
 }
 
+#[cfg(not(dev))]
 fn dirs_home() -> PathBuf {
     std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
@@ -2557,7 +2686,22 @@ fn dirs_home() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::test_support::temp_root;
+
+    #[cfg(dev)]
+    #[test]
+    fn development_builds_local_services_and_the_actual_langgraph_agui_tree() {
+        let services = local_build_services(true, BundledBots::openai_compatible());
+        assert!(services.contains(&"migrate"));
+        assert!(services.contains(&"agent-langgraph"));
+        assert!(!services.contains(&"postgres"));
+        assert!(!services.contains(&"agent-harness"));
+        assert_eq!(
+            local_harness_source("openbot-agent-langgraph-agui:local"),
+            Some("agent-langgraph-agui")
+        );
+    }
 
     #[test]
     fn desktop_approval_transport_credential_reaches_only_the_server() {
@@ -6492,16 +6636,12 @@ fn main() {
     }
 
     #[test]
-    fn the_app_is_served_as_a_build_rather_than_by_a_development_server() {
+    fn the_app_uses_the_server_for_its_build_mode() {
         let app = HOST_PROCESSES
             .iter()
             .find(|process| process.name == "app")
             .expect("the app is one of the three");
-        assert_eq!(
-            app.package_script, "serve",
-            "`dev` sets NODE_ENV=development, and the SDK draws its developer inspector over the \
-             application when it reads that"
-        );
+        assert_eq!(app.package_script, if cfg!(dev) { "dev" } else { "serve" });
     }
 
     #[test]
@@ -6511,12 +6651,19 @@ fn main() {
     }
 
     #[test]
-    fn the_server_uses_the_production_loader_entry() {
+    fn the_server_uses_the_entry_for_its_build_mode() {
         let server = HOST_PROCESSES
             .iter()
             .find(|process| process.name == "server")
             .expect("the server is one of the three");
-        assert_eq!(server.script, "src/production-entry.ts");
+        assert_eq!(
+            server.script,
+            if cfg!(dev) {
+                "src/index.ts"
+            } else {
+                "src/production-entry.ts"
+            }
+        );
     }
 
     #[test]

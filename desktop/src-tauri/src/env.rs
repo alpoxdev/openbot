@@ -443,9 +443,12 @@ pub fn compose(
     // answered, and it is the same switch `ci.yml` uses for the same reason.
     env.insert("OPENBOT_SINGLE_USER".into(), "true".into());
 
-    // Pull the published images rather than build them. A desktop install has no toolchain and no
-    // reason to compile Chromium.
-    env.insert("IMAGE_PULL_POLICY".into(), "missing".into());
+    // Development Compose builds the checkout's images before `up`; packaged installs pull the
+    // release's digest-pinned images instead.
+    env.insert(
+        "IMAGE_PULL_POLICY".into(),
+        if cfg!(dev) { "build" } else { "missing" }.into(),
+    );
 
     // Which images, by digest, from the release's own manifest. Compose's defaults are local build
     // names, so leaving these unset does not fall back to something workable: it asks a registry
@@ -510,6 +513,14 @@ impl PickedHarness {
     pub fn installed_port(&self) -> Option<u16> {
         match self {
             Self::Installed { port, .. } => Some(*port),
+            Self::RemoteAgUi { .. } => None,
+        }
+    }
+
+    #[cfg(dev)]
+    pub fn installed_image(&self) -> Option<&str> {
+        match self {
+            Self::Installed { image, .. } => Some(image),
             Self::RemoteAgUi { .. } => None,
         }
     }

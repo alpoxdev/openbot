@@ -11,10 +11,11 @@ mod desktop_telemetry;
 mod test_support;
 
 use openbot_desktop_lib::{
-    acquire, deployment, deployment_release, engine, env as openbot_env, harness, host_access,
-    install, problem::Problem, provider, pull_metrics, quiet, stack, supervise, telemetry, tray,
-    windows as win,
+    acquire, deployment, engine, env as openbot_env, harness, host_access, install,
+    problem::Problem, provider, quiet, stack, supervise, telemetry, tray, windows as win,
 };
+#[cfg(not(dev))]
+use openbot_desktop_lib::{deployment_release, pull_metrics};
 
 const QUIT_CLEANUP_NOTICE_FILE: &str = ".openbot-quit-cleanup-notice";
 const QUIT_MENU_ACCELERATOR: &str = "CmdOrCtrl+KeyQ";
@@ -229,6 +230,12 @@ fn ready_responding_engine_after_compose_repair(
     mut detect: impl FnMut() -> engine::EngineStatus,
     mut composes: impl FnMut(&engine::Address) -> bool,
 ) -> Result<Option<ReadyRespondingEngine>, Problem> {
+    if found.engine == Some(engine::Engine::Docker) && !found.responding {
+        return Err(Problem::with(
+            "Docker is installed but not answering. Start Docker Desktop (or the Docker engine), then try again.",
+            found.detail,
+        ));
+    }
     let Some(address) = found.address.clone().filter(|_| found.responding) else {
         return Ok(None);
     };
@@ -499,36 +506,54 @@ async fn deployment_ready<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     root: &Path,
 ) -> Result<(), Problem> {
-    // Both release discovery and downloading use blocking HTTP. Keeping them in a blocking task
-    // avoids dropping reqwest's runtime inside this async context.
-    let target = root.to_path_buf();
-    let handle = app.clone();
-    let version = tauri::async_runtime::spawn_blocking(move || {
-        let version = deployment_release::resolve_version(&target)?;
-        if deployment::needs_fetch(&target, &version) {
-            report(&handle, "deployment", true, format!("fetching {version}"));
-            deployment::fetch(&target, &version)?;
+    #[cfg(dev)]
+    {
+        if let Some(problem) = stack::deployment_problem(root) {
+            report(app, "deployment", false, problem.clone());
+            return Err(problem.into());
         }
-        Ok::<_, String>(version)
-    })
-    .await
-    .map_err(|error| format!("the download did not run: {error}"))
-    .and_then(|result| result)
-    .map_err(|error| {
-        report(app, "deployment", false, error.clone());
-        Problem::with(
-            "OpenBot could not download what it needs to run. Check the internet \
+        report(
+            app,
+            "deployment",
+            true,
+            format!("local checkout in {}", root.display()),
+        );
+        return Ok(());
+    }
+
+    #[cfg(not(dev))]
+    {
+        // Both release discovery and downloading use blocking HTTP. Keeping them in a blocking task
+        // avoids dropping reqwest's runtime inside this async context.
+        let target = root.to_path_buf();
+        let handle = app.clone();
+        let version = tauri::async_runtime::spawn_blocking(move || {
+            let version = deployment_release::resolve_version(&target)?;
+            if deployment::needs_fetch(&target, &version) {
+                report(&handle, "deployment", true, format!("fetching {version}"));
+                deployment::fetch(&target, &version)?;
+            }
+            Ok::<_, String>(version)
+        })
+        .await
+        .map_err(|error| format!("the download did not run: {error}"))
+        .and_then(|result| result)
+        .map_err(|error| {
+            report(app, "deployment", false, error.clone());
+            Problem::with(
+                "OpenBot could not download what it needs to run. Check the internet \
              connection and try again.",
-            error,
-        )
-    })?;
-    report(
-        app,
-        "deployment",
-        true,
-        format!("{version} in {}", root.display()),
-    );
-    Ok(())
+                error,
+            )
+        })?;
+        report(
+            app,
+            "deployment",
+            true,
+            format!("{version} in {}", root.display()),
+        );
+        Ok(())
+    }
 }
 
 /// The reference for an image the shell runs directly, rather than through Compose.
@@ -1027,6 +1052,13 @@ async fn start_stack_inner<R: tauri::Runtime>(
          */
         let bundled_bots = stack::BundledBots::for_credential(&credential);
         attempt.require_current()?;
+        #[cfg(dev)]
+        if let Some(image) = picked
+            .as_ref()
+            .and_then(openbot_env::PickedHarness::installed_image)
+        {
+            stack::build_local_harness(&found, &root, image)?;
+        }
         stack::pull(
             &found,
             &root,
@@ -2363,8 +2395,18 @@ async fn begin_claude_sign_in(app: tauri::AppHandle, root: String) -> Result<Str
     // installed either yet.
     let address = engine_ready(&app).await?;
     let image = sign_in_image(&app, &root, openbot_desktop_lib::plan::SIGN_IN_IMAGE).await?;
+    #[cfg(not(dev))]
     let telemetry_app = app.clone();
+    #[cfg(dev)]
+    let build_root = root.clone();
     let (signing, url) = tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(dev)]
+        stack::build_sign_in_image(
+            &address,
+            &build_root,
+            openbot_desktop_lib::plan::SIGN_IN_IMAGE,
+        )?;
+        #[cfg(not(dev))]
         pull_metrics::pull_image(&address, &image, |metrics| {
             desktop_telemetry::pull_completed(&telemetry_app, metrics);
         })?;
@@ -2428,8 +2470,18 @@ async fn begin_chatgpt_sign_in(
         openbot_desktop_lib::plan::CHATGPT_SIGN_IN_IMAGE,
     )
     .await?;
+    #[cfg(not(dev))]
     let telemetry_app = app.clone();
+    #[cfg(dev)]
+    let build_root = root.clone();
     let (signing, url) = tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(dev)]
+        stack::build_sign_in_image(
+            &address,
+            &build_root,
+            openbot_desktop_lib::plan::CHATGPT_SIGN_IN_IMAGE,
+        )?;
+        #[cfg(not(dev))]
         pull_metrics::pull_image(&address, &image, |metrics| {
             desktop_telemetry::pull_completed(&telemetry_app, metrics);
         })?;
@@ -3447,6 +3499,61 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(dev)]
+    #[test]
+    fn development_readiness_needs_no_release_and_preserves_checkout_settings() {
+        let root = temp_root("development-ready");
+        for directory in ["server", "app", "worker"] {
+            std::fs::create_dir_all(root.join(directory)).unwrap();
+        }
+        std::fs::write(root.join("docker-compose.yml"), "services: {}\n").unwrap();
+        std::fs::write(
+            root.join("app/package.json"),
+            r#"{"scripts":{"dev":"vite","serve":"vite preview"}}"#,
+        )
+        .unwrap();
+        std::fs::write(root.join(".env"), "LOCAL_SETTING=keep\n").unwrap();
+        let app = tauri::test::mock_builder()
+            .manage(Shell::default())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+
+        tauri::async_runtime::block_on(deployment_ready(app.handle(), &root)).unwrap();
+
+        assert!(deployment::installed(&root).is_none());
+        assert!(!deployment::images_path(&root).exists());
+        assert_eq!(
+            std::fs::read_to_string(root.join(".env")).unwrap(),
+            "LOCAL_SETTING=keep\n"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(dev)]
+    #[test]
+    #[ignore = "builds the local ChatGPT image using a running container engine"]
+    fn live_development_chatgpt_image_build() {
+        let root = stack::default_root();
+        let app = tauri::test::mock_builder()
+            .manage(Shell::default())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        tauri::async_runtime::block_on(deployment_ready(app.handle(), &root)).unwrap();
+        let engine = engine::detect()
+            .address
+            .expect("a running container engine");
+        let published = openbot_desktop_lib::plan::CHATGPT_SIGN_IN_IMAGE;
+        stack::build_sign_in_image(&engine, &root, published).unwrap();
+        let image = deployment::reference(&root, published).unwrap();
+        let output = engine
+            .command()
+            .args(["image", "inspect", "--format", "{{.Id}}", &image])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).starts_with("sha256:"));
+    }
+
     #[test]
     fn deployment_ready_preserves_the_installed_release() {
         let root = temp_root("deployment-ready-pinned");
@@ -4312,6 +4419,83 @@ mod tests {
         assert_eq!(&*trace.borrow(), &["install-engine", "re-detect"]);
         assert_eq!(ready.installed.as_deref(), Some("Compose installed."));
         assert_eq!(ready.address.connection.as_deref(), Some("openbot"));
+    }
+
+    #[test]
+    fn stopped_docker_blocks_install_and_machine_provisioning() {
+        let detail = "docker is installed but not answering. Start it and try again.";
+        let result = ready_responding_engine_after_compose_repair(
+            engine::EngineStatus {
+                engine: Some(engine::Engine::Docker),
+                address: None,
+                responding: false,
+                engine_socket: None,
+                detail: detail.into(),
+            },
+            || panic!("a stopped Docker daemon must not install Podman"),
+            || panic!("a stopped Docker daemon must not be re-detected"),
+            |_| panic!("a stopped Docker daemon must not check Compose"),
+        );
+
+        let problem = match result {
+            Err(problem) => problem,
+            Ok(_) => panic!("a stopped Docker daemon must stop setup"),
+        };
+        assert!(problem
+            .said
+            .contains("Start Docker Desktop (or the Docker engine)"));
+        assert_eq!(problem.detail.as_deref(), Some(detail));
+    }
+
+    #[test]
+    fn responding_docker_with_compose_is_reused_without_installing() {
+        let address = engine::Address::new(engine::Engine::Docker, None);
+        let ready = ready_responding_engine_after_compose_repair(
+            engine::EngineStatus {
+                engine: Some(engine::Engine::Docker),
+                address: Some(address.clone()),
+                responding: true,
+                engine_socket: None,
+                detail: "docker is answering.".into(),
+            },
+            || panic!("a responding Docker daemon must be reused"),
+            || panic!("a responding Docker daemon must not be re-detected"),
+            |_| true,
+        )
+        .expect("a responding Docker daemon should be ready")
+        .expect("a responding Docker daemon with Compose should be reused");
+
+        assert_eq!(ready.address, address);
+        assert_eq!(ready.installed, None);
+    }
+
+    #[test]
+    fn missing_or_stopped_podman_keeps_the_provisioning_path_open() {
+        for (engine, detail) in [
+            (None, "No container engine yet."),
+            (
+                Some(engine::Engine::Podman),
+                "podman is installed but not answering. Start it and try again.",
+            ),
+        ] {
+            let result = ready_responding_engine_after_compose_repair(
+                engine::EngineStatus {
+                    engine,
+                    address: None,
+                    responding: false,
+                    engine_socket: None,
+                    detail: detail.into(),
+                },
+                || panic!("a missing or stopped Podman setup has no Compose repair"),
+                || panic!("a missing or stopped Podman setup must not be re-detected"),
+                |_| panic!("a missing or stopped Podman setup must not check Compose"),
+            );
+
+            assert!(
+                matches!(result, Ok(None)),
+                "missing or stopped Podman must continue to provisioning"
+            );
+        }
     }
 
     #[test]

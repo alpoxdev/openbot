@@ -76,12 +76,31 @@ pub const IMAGE_VARIABLES: [(&str, &str); 5] = [
 ///
 /// Digests, not tags. A tag can be moved to point at a different image after the version that was
 /// tested; a digest is the image that was tested.
+#[cfg(not(dev))]
 pub fn image_variables(root: &Path) -> Result<Vec<(String, String)>, String> {
     let text = std::fs::read_to_string(images_path(root))
         .map_err(|error| format!("could not read {}: {error}", images_path(root).display()))?;
     let manifest: Images = serde_json::from_str(&text)
         .map_err(|error| format!("{IMAGES} is not readable: {error}"))?;
     pin(&manifest)
+}
+
+/// Local image names used by the Tauri development build.
+///
+/// The development tree is the source of truth in this mode. There is no release manifest beside
+/// it, and these names are deliberately qualified and tagged so the engine never resolves them
+/// through a registry.
+#[cfg(dev)]
+pub fn image_variables(_root: &Path) -> Result<Vec<(String, String)>, String> {
+    Ok(IMAGE_VARIABLES
+        .iter()
+        .map(|(published, variable)| ((*variable).to_string(), local_reference(published)))
+        .collect())
+}
+
+#[cfg(dev)]
+pub fn local_reference(published: &str) -> String {
+    format!("openbot-{published}:local")
 }
 
 /// One published image's reference, digest-pinned, from the manifest beside the deployment.
@@ -95,6 +114,7 @@ pub fn image_variables(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// An image this release does not publish is named as that. It is the honest answer and the
 /// actionable one: the alternative is somebody debugging registry permissions for an image that
 /// was never pushed.
+#[cfg(not(dev))]
 pub fn reference(root: &Path, published: &str) -> Result<String, String> {
     let text = std::fs::read_to_string(images_path(root))
         .map_err(|error| format!("could not read {}: {error}", images_path(root).display()))?;
@@ -105,6 +125,11 @@ pub fn reference(root: &Path, published: &str) -> Result<String, String> {
         .get(published)
         .map(|image| image.reference.clone())
         .ok_or_else(|| format!("OpenBot {} does not include {published}.", manifest.version))
+}
+
+#[cfg(dev)]
+pub fn reference(_root: &Path, published: &str) -> Result<String, String> {
+    Ok(local_reference(published))
 }
 
 /// Every image the stack runs, or a failure that names the one that is missing.
@@ -340,6 +365,34 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[cfg(dev)]
+    #[test]
+    fn development_images_never_require_a_release_manifest_or_registry() {
+        let root = Path::new("/checkout");
+        let images = image_variables(root).expect("development images are derived locally");
+        assert_eq!(
+            images
+                .iter()
+                .map(|(_, reference)| reference.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "openbot-server:local",
+                "openbot-supervisor:local",
+                "openbot-agent-computer:local",
+                "openbot-agent-bot:local",
+                "openbot-agent-langgraph:local",
+            ]
+        );
+        assert_eq!(
+            reference(root, "agent-claude-sdk").unwrap(),
+            "openbot-agent-claude-sdk:local"
+        );
+        assert_eq!(
+            reference(root, "agent-langgraph-agui").unwrap(),
+            "openbot-agent-langgraph-agui:local"
+        );
     }
 
     #[test]

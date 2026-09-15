@@ -272,6 +272,14 @@ fieldset.picker {
   border-color: var(--ink);
 }
 
+/* Connect choices have no mark column; keep name and summary stacked. */
+button.connect-tile {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "name"
+    "summary";
+}
+
 .mark-tile {
   grid-area: mark;
 }

@@ -10,7 +10,8 @@ All desktop event names begin with `oss.desktop.`. The Rust `EventData` enum and
 
 | Event suffix | Properties |
 | --- | --- |
-| `step_viewed` | Setup step enum |
+| `step_viewed` | Setup step enum, including `connect` |
+| `connection_chosen` | `local` or `remote`; never a URL |
 | `harness_chosen` | Harness enum, including `byo_url` |
 | `model_chosen` | Provider and credential-path enums; custom-base-URL boolean |
 | `engine_detected` | Engine enum; responding boolean |

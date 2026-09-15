@@ -1,0 +1,33 @@
+{
+  "surface": "isolated real settings screen through Vite; mocked identity only; no backend running",
+  "rows": [
+    {
+      "case": "live-system-dark",
+      "dark": true,
+      "scheme": "dark",
+      "preference": "system",
+      "legacy": null
+    },
+    {
+      "case": "live-system-light",
+      "dark": false,
+      "scheme": "light",
+      "preference": "system",
+      "legacy": null
+    },
+    {
+      "case": "keyboard-dark-on-light-os",
+      "dark": true,
+      "scheme": "dark",
+      "preference": "dark",
+      "legacy": null
+    },
+    {
+      "case": "pinned-dark-survives-os-change",
+      "dark": true,
+      "scheme": "dark",
+      "preference": "dark",
+      "legacy": null
+    }
+  ]
+}

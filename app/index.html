@@ -4,12 +4,56 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenBot</title>
-    <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- Sets the theme before the first paint. Must stay inline and classic: `defer` or `type="module"` runs too late. -->
+    <link
+      rel="preload"
+      href="/fonts/PretendardVariable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!-- Sets the theme before the first paint; keep this inline and classic. -->
     <script>
-      // localStorage throws in some privacy modes; a theme is not worth taking the app down for.
+      /*
+       * Resolve the appearance before the first frame.
+       *
+       * The old key could not tell "chose light" from "never asked". The v2 key is authoritative;
+       * legacy "dark" is migrated only after a successful absent-v2 read.
+       *
+       * Keep each read guarded: storage or media-query failures must still leave a usable page.
+       */
+      var v2 = null,
+        v2ReadSucceeded = false,
+        legacy = null,
+        prefersDark = false;
       try {
-        const dark = window.localStorage.getItem("openbot-theme") === "dark";
+        v2 = window.localStorage.getItem("openbot-theme-v2");
+        v2ReadSucceeded = true;
+      } catch {}
+      if (v2ReadSucceeded && v2 === null) {
+        try {
+          legacy = window.localStorage.getItem("openbot-theme");
+        } catch {}
+      }
+      try {
+        prefersDark =
+          window.matchMedia("(prefers-color-scheme: dark)").matches === true;
+      } catch {}
+      var preference;
+      if (
+        v2ReadSucceeded &&
+        (v2 === "dark" || v2 === "light" || v2 === "system")
+      )
+        preference = v2;
+      else if (
+        v2ReadSucceeded &&
+        v2 === null &&
+        legacy === "dark"
+      )
+        preference = "dark";
+      else preference = "system";
+      var dark =
+        preference === "dark" || (preference === "system" && prefersDark);
+      try {
         document.documentElement.classList.toggle("dark", dark);
         document.documentElement.style.colorScheme = dark ? "dark" : "light";
       } catch {}

@@ -8,6 +8,21 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
 
 ## Unreleased
 
+### OpenBot follows your computer's light and dark setting
+
+OpenBot now wears whatever appearance your operating system is set to, and keeps up with it while
+the app is open — switch your computer to dark in the evening and OpenBot goes dark with it, without
+a reload. This is also true of the web app, on every deployment you sign in to.
+
+The Appearance setting in Preferences still offers Light and Dark for anybody who wants to be pinned
+to one, and a pinned choice is never overridden by the system.
+
+**If you had Light selected, you will need to select it again once.** The old setting could not tell
+"I chose light" apart from "nobody ever asked me", because the app wrote a light preference for
+everybody who had not chosen dark. Existing light preferences therefore move to System, including
+deliberate Light choices. Select Light in the Appearance row to restore that choice. Existing Dark
+choices are preserved.
+
 ## 0.0.11
 
 ### The LlamaIndex Bot answers with the model the setup screen chose

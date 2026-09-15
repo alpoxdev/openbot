@@ -228,3 +228,9 @@ script that decides the theme before the first paint. Nothing in this repo sends
 works as shipped; a deployment that adds one at its proxy has to allow that script explicitly, or
 `script-src` blocks it and the page renders with the wrong theme until the app boots. A `'sha256-'`
 hash of the script body is the version that survives a rebuild without a per-request nonce.
+
+That hash is of the script body, so **a deployment that has already pinned one must re-derive it
+whenever this script changes** — a pinned hash of an older body now *blocks* the script rather than
+merely failing to cover it, and the page paints light until the app boots. The script gained the
+system-appearance lookup and the legacy-preference migration, so any hash pinned before that change
+is stale.

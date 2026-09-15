@@ -1,0 +1,11 @@
+{
+  "surface": "isolated real Settings/provider in Chromium",
+  "invocation": "Prior browser run replaced Storage.prototype.setItem/removeItem with throwing functions; awaited live system dark and light DOM updates, selected Dark via ArrowDown End Enter, and captured repaired-dark.png. Tool failed serializing Object.assign return during cleanup, after those assertions and screenshot.",
+  "observedAfterRun": {
+    "dark": true,
+    "scheme": "dark",
+    "stored": "system",
+    "control": "Dark▼"
+  },
+  "limitation": "No native-platform or first-frame recording"
+}

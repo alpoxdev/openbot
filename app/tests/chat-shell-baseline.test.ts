@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseStoredDarkTheme } from "../src/lib/theme";
+import { parseStoredThemePreference } from "../src/lib/theme";
 
 const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const srcRoot = join(appRoot, "src");
@@ -60,11 +60,17 @@ describe("chat shell baseline", () => {
 });
 
 describe("theme baseline", () => {
-  test("only the stored dark value enables dark theme", () => {
-    expect(parseStoredDarkTheme("dark")).toBe(true);
-    expect(parseStoredDarkTheme("light")).toBe(false);
-    expect(parseStoredDarkTheme(null)).toBe(false);
-    expect(parseStoredDarkTheme("")).toBe(false);
-    expect(parseStoredDarkTheme("Dark")).toBe(false);
+  /*
+   * The baseline moved when the preference became three-state: the stored value is now the choice
+   * (`system` / `light` / `dark`) rather than a resolution, so anything unrecognised — including a
+   * value from an older build — means "follow the system" instead of "light".
+   */
+  test("only the three known values are preferences", () => {
+    expect(parseStoredThemePreference("dark")).toBe("dark");
+    expect(parseStoredThemePreference("light")).toBe("light");
+    expect(parseStoredThemePreference("system")).toBe("system");
+    expect(parseStoredThemePreference(null)).toBe("system");
+    expect(parseStoredThemePreference("")).toBe("system");
+    expect(parseStoredThemePreference("Dark")).toBe("system");
   });
 });

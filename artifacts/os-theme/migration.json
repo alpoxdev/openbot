@@ -1,0 +1,62 @@
+[
+  {
+    "v2": null,
+    "legacy": "dark",
+    "os": "light",
+    "expected": true,
+    "preference": "dark",
+    "actual": {
+      "dark": true,
+      "scheme": "dark",
+      "legacy": null
+    }
+  },
+  {
+    "v2": null,
+    "legacy": "light",
+    "os": "dark",
+    "expected": true,
+    "preference": "system",
+    "actual": {
+      "dark": true,
+      "scheme": "dark",
+      "legacy": null
+    }
+  },
+  {
+    "v2": "light",
+    "legacy": "dark",
+    "os": "dark",
+    "expected": false,
+    "preference": "light",
+    "actual": {
+      "dark": false,
+      "scheme": "light",
+      "legacy": null
+    }
+  },
+  {
+    "v2": "banana",
+    "legacy": "dark",
+    "os": "light",
+    "expected": false,
+    "preference": "system",
+    "actual": {
+      "dark": false,
+      "scheme": "light",
+      "legacy": null
+    }
+  },
+  {
+    "v2": "system",
+    "legacy": "dark",
+    "os": "light",
+    "expected": false,
+    "preference": "system",
+    "actual": {
+      "dark": false,
+      "scheme": "light",
+      "legacy": null
+    }
+  }
+]

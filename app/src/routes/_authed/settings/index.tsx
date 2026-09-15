@@ -7,6 +7,7 @@ import {
 } from "@/components/layout/page-shell";
 import { StandingInstructions } from "@/components/settings/standing-instructions";
 import { useTheme } from "@/components/theme-provider";
+import type { ThemePreference } from "@/lib/theme";
 import {
   Item,
   ItemActions,
@@ -15,7 +16,13 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatHotkey, HOTKEYS } from "@/lib/hotkeys/hotkeys";
 
 export const Route = createFileRoute("/_authed/settings/")({
@@ -23,7 +30,7 @@ export const Route = createFileRoute("/_authed/settings/")({
 });
 
 function RouteComponent() {
-  const { dark, setDark } = useTheme();
+  const { preference, setPreference } = useTheme();
 
   /*
    * The measurements that used to be written out here now live in `PageShell`, which Skills, Admin
@@ -40,25 +47,49 @@ function RouteComponent() {
     >
       <PageSection title="General">
         <PageRows>
+          {/*
+           * A Select, not the summary-plus-chevron-and-dialog that
+           * `.claude/skills/openbot-screen-layout/SKILL.md` Procedure 3 asks for on a row with more
+           * than two values. The override is deliberate: there are exactly three fixed values, they
+           * fit in the trigger, and a dialog for a three-way choice is more ceremony than the
+           * decision deserves. Two other route selects are precedents, though both sit inside a
+           * dialog body or a form rather than on a settings row.
+           */}
           <Item size="sm">
             <ItemContent>
-              <ItemTitle>Dark theme</ItemTitle>
+              <ItemTitle>Appearance</ItemTitle>
               <ItemDescription>
-                Use the dark appearance across OpenBot.
+                {preference === "system"
+                  ? "Follows your operating system's light or dark setting, and changes with it."
+                  : preference === "dark"
+                    ? "Always dark, whatever your operating system is set to."
+                    : "Always light, whatever your operating system is set to."}
               </ItemDescription>
             </ItemContent>
             <ItemActions>
-              <Switch
-                aria-label="Dark theme"
-                checked={dark}
-                onCheckedChange={setDark}
-              />
+              <Select
+                // The label map, so the closed trigger reads a word rather than the raw value.
+                items={{ system: "System", light: "Light", dark: "Dark" }}
+                onValueChange={(next) =>
+                  setPreference(next as ThemePreference)
+                }
+                value={preference}
+              >
+                <SelectTrigger aria-label="Appearance" className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="system">System</SelectItem>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                </SelectContent>
+              </Select>
             </ItemActions>
           </Item>
         </PageRows>
       </PageSection>
       {/*
-       * Above the shortcuts and below the appearance switch, because it is the only thing on this
+       * Above the shortcuts and below the appearance control, because it is the only thing on this
        * screen that changes what a coworker says rather than what this browser looks like.
        */}
       <StandingInstructions />

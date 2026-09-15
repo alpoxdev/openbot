@@ -32,11 +32,13 @@ export function RecipientField({
   const [search, setSearch] = useState("");
 
   const chosen = new Set(recipients.map((recipient) => recipient.id));
-  const matches = (profiles ?? [])
-    .filter((profile) => !chosen.has(profile.id))
-    .filter((profile) =>
+  // One pass: both predicates answer the same question about the same profile, so the second
+  // `filter` was a second walk of the whole roster for a decision the first walk already made.
+  const matches = (profiles ?? []).filter(
+    (profile) =>
+      !chosen.has(profile.id) &&
       profile.name.toLowerCase().includes(search.trim().toLowerCase()),
-    );
+  );
   const isFull = recipients.length >= MAX_RECIPIENTS;
 
   return (

@@ -28,13 +28,26 @@ export function SidebarShell({
   width: string;
 }) {
   // Read before the first paint, so a shell somebody left collapsed never flashes open.
-  const [open, setOpen] = useState(() =>
-    parseStoredSidebarOpen(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)),
-  );
+  const [open, setOpen] = useState(() => {
+    try {
+      return parseStoredSidebarOpen(
+        window.localStorage.getItem(SIDEBAR_STORAGE_KEY),
+      );
+    } catch {
+      // Private browsing and a disabled store both throw here; opening is the default anyway.
+      return parseStoredSidebarOpen(null);
+    }
+  });
 
   useEffect(() => {
     applySidebarOpen(open, {
-      setStoredValue: (key, value) => window.localStorage.setItem(key, value),
+      setStoredValue: (key, value) => {
+        try {
+          window.localStorage.setItem(key, value);
+        } catch {
+          // Incognito or a full quota: the preference simply does not outlive the reload.
+        }
+      },
     });
   }, [open]);
 

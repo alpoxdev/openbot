@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { callComponentFunction } from "@/lib/components/queries";
+import { componentFunctionQueryOptions } from "@/lib/components/queries";
 import { useActiveBotId } from "@/lib/copilot/active-bot";
 import { useConversation } from "@/lib/copilot/conversation";
 import type { GalleryComponent } from "@/lib/copilot/gallery-registry";
@@ -59,37 +59,34 @@ export function ActivityReportCard({
 }: Partial<ActivityArgs>) {
   const botId = useActiveBotId();
   const conversation = useConversation();
-  const [state, setState] = useState<State>({ status: "reading" });
 
   const functionName = report ? FUNCTION_FOR[report] : undefined;
 
-  useEffect(() => {
-    // Nothing to read until the arguments have finished streaming in.
-    if (!functionName) return;
-    let current = true;
-
-    void callComponentFunction(
+  /*
+   * Read through the query cache rather than a fetch-in-effect, so two cards asking the same
+   * question at the same moment share one call. There is nothing to read until the arguments have
+   * finished streaming in, which is what the empty function name disables.
+   */
+  const read = useQuery(
+    componentFunctionQueryOptions(
       "showActivityReport",
-      functionName,
-      days === undefined ? {} : { days },
+      functionName ?? "",
+      days,
       botId,
-    ).then((result) => {
-      if (!current) return;
-      setState(
-        result.allowed && result.data !== undefined
-          ? { status: "read", data: result.data }
-          : {
-              status: "refused",
-              reason:
-                result.reason ?? result.error ?? "That data could not be read.",
-            },
-      );
-    });
+    ),
+  );
 
-    return () => {
-      current = false;
-    };
-  }, [functionName, days, botId]);
+  const result = read.data;
+  const state: State =
+    result === undefined
+      ? { status: "reading" }
+      : result.allowed && result.data !== undefined
+        ? { status: "read", data: result.data }
+        : {
+            status: "refused",
+            reason:
+              result.reason ?? result.error ?? "That data could not be read.",
+          };
 
   if (!report) {
     return (

@@ -5,6 +5,12 @@ import type * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/* Static, prop-free element for the close button's `render` slot: built once at module scope instead
+ * of on every render. */
+const dialogCloseButtonRender = (
+  <Button variant="ghost" className="absolute top-3 right-3" size="icon-sm" />
+);
+
 /**
  * A centred modal, for a form that is short enough to finish in one sitting.
  *
@@ -85,13 +91,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
-              />
-            }
+            render={dialogCloseButtonRender}
           >
             <IconX />
             <span className="sr-only">Close</span>

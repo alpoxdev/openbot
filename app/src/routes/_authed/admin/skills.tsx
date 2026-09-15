@@ -111,61 +111,64 @@ function RouteComponent() {
           <PageEmpty>No skills yet.</PageEmpty>
         ) : (
           <PageRows>
-            {skills.map((skill, index) => (
-              <React.Fragment key={skill.slug}>
-                <Item size="sm">
-                  <ItemMedia variant="icon">
-                    <IconFileText className="size-4" />
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>
-                      <code className="font-mono text-foreground/80 text-xs">
-                        /{skill.slug}
-                      </code>{" "}
-                      {skill.title}
-                    </ItemTitle>
-                    <ItemDescription>{skill.summary}</ItemDescription>
-                    {/* A set, so it wraps onto its own line rather than crowding the title. */}
-                    <ItemFooter>
-                      <div className="flex flex-wrap gap-2">
-                        {bots.map((bot) => {
-                          const held = skill.grantedTo.includes(bot.id);
-                          return (
-                            <Button
-                              key={bot.id}
-                              onClick={() =>
-                                setGrant.mutate({
-                                  agentId: bot.id,
-                                  granted: !held,
-                                  kind: "skill",
-                                  ref: skill.slug,
-                                })
-                              }
-                              size="sm"
-                              type="button"
-                              variant={held ? "default" : "outline"}
-                            >
-                              {bot.name}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </ItemFooter>
-                  </ItemContent>
-                  <ItemActions>
-                    <Button
-                      onClick={() => removeSkill.mutate(skill.slug)}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      Remove
-                    </Button>
-                  </ItemActions>
-                </Item>
-                {index !== skills.length - 1 && <Separator />}
-              </React.Fragment>
-            ))}
+            {skills.map((skill, index) => {
+              const granted = new Set(skill.grantedTo);
+              return (
+                <React.Fragment key={skill.slug}>
+                  <Item size="sm">
+                    <ItemMedia variant="icon">
+                      <IconFileText className="size-4" />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>
+                        <code className="font-mono text-foreground/80 text-xs">
+                          /{skill.slug}
+                        </code>{" "}
+                        {skill.title}
+                      </ItemTitle>
+                      <ItemDescription>{skill.summary}</ItemDescription>
+                      {/* A set, so it wraps onto its own line rather than crowding the title. */}
+                      <ItemFooter>
+                        <div className="flex flex-wrap gap-2">
+                          {bots.map((bot) => {
+                            const held = granted.has(bot.id);
+                            return (
+                              <Button
+                                key={bot.id}
+                                onClick={() =>
+                                  setGrant.mutate({
+                                    agentId: bot.id,
+                                    granted: !held,
+                                    kind: "skill",
+                                    ref: skill.slug,
+                                  })
+                                }
+                                size="sm"
+                                type="button"
+                                variant={held ? "default" : "outline"}
+                              >
+                                {bot.name}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </ItemFooter>
+                    </ItemContent>
+                    <ItemActions>
+                      <Button
+                        onClick={() => removeSkill.mutate(skill.slug)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Remove
+                      </Button>
+                    </ItemActions>
+                  </Item>
+                  {index !== skills.length - 1 && <Separator />}
+                </React.Fragment>
+              );
+            })}
           </PageRows>
         )}
       </PageSection>

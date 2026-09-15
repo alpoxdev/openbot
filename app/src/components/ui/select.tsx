@@ -9,6 +9,15 @@ import {
   IconChevronDown,
 } from "@tabler/icons-react";
 
+/* Static, prop-free elements for the `render` slots below: built once at module scope instead of on
+ * every render. */
+const selectTriggerIconRender = (
+  <IconSelector className="pointer-events-none size-4 text-muted-foreground" />
+);
+const selectItemIndicatorRender = (
+  <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
+);
+
 const Select = SelectPrimitive.Root;
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
@@ -51,9 +60,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon
-        render={
-          <IconSelector className="pointer-events-none size-4 text-muted-foreground" />
-        }
+        render={selectTriggerIconRender}
       />
     </SelectPrimitive.Trigger>
   );
@@ -132,9 +139,7 @@ function SelectItem({
         {children}
       </SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator
-        render={
-          <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
-        }
+        render={selectItemIndicatorRender}
       >
         <IconCheck className="pointer-events-none" />
       </SelectPrimitive.ItemIndicator>

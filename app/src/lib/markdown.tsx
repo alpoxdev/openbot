@@ -32,9 +32,32 @@ const DRIVE_KINDS = [
   { match: "/presentation/", icon: IconPresentation, label: "Slides" },
 ] as const;
 
-export function documentChipKind(href: string | undefined) {
-  if (!href) return null;
+/*
+ * ponytail: one entry per distinct href this tab has ever rendered, and nothing evicts it. The ceiling
+ * is "a session's worth of links", which for a chat is a page of citations rather than a growth path;
+ * a surface streaming thousands of distinct URLs wants a cap here — drop-oldest, or a bounded LRU —
+ * instead of a Map that only grows.
+ */
+const kindCache = new Map<string, ReturnType<typeof documentChipKind>>();
 
+// The return annotation is what breaks the cycle the line above would otherwise infer through.
+export function documentChipKind(
+  href: string | undefined,
+): ReturnType<typeof parseDocumentChipKind> {
+  if (!href) return null;
+  // `undefined` is a miss: nothing writes it, so a cached `null` still reads as a hit.
+  const cached = kindCache.get(href);
+  if (cached !== undefined) return cached;
+  const kind = parseDocumentChipKind(href);
+  kindCache.set(href, kind);
+  return kind;
+}
+
+/**
+ * The parse behind `documentChipKind`, which memoizes it: a streaming answer re-renders the same link
+ * on every chunk, and a `new URL` per link per chunk is what the cache above exists to skip.
+ */
+function parseDocumentChipKind(href: string) {
   let url: URL;
   try {
     url = new URL(href);

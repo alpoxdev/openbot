@@ -50,7 +50,11 @@ import {
   toDraft,
 } from "./draft";
 import { screenPickedFiles } from "./picked-files";
-import { AttachmentStrip } from "./attachment-strip";
+import {
+  AttachmentStrip,
+  type StagedFile,
+  type StagedImage,
+} from "./attachment-strip";
 import { type RejectedFile, RejectedFiles } from "./rejected-files";
 import { PLACEHOLDER_COMMANDS } from "./sources";
 import { type AgentOption, buildTriggers } from "./triggers";
@@ -544,10 +548,12 @@ export function Composer({
    * draft both buttons are enabled from — so there is no path left on which an attachment that has
    * already been sent can be counted, drawn, or sent again.
    */
-  const staged = useMemo(
-    () => attachments.filter((attachment) => !sending.includes(attachment.id)),
-    [attachments, sending],
-  );
+  const staged = useMemo(() => {
+    // The ids of a send in flight, as a Set: this is one membership test per staged attachment, not
+    // a scan of the sending list for each of them.
+    const sendingIds = new Set(sending);
+    return attachments.filter((attachment) => !sendingIds.has(attachment.id));
+  }, [attachments, sending]);
 
   /**
    * Take a chip off the strip. That is all this does, and the row it stood for is deliberately
@@ -967,46 +973,46 @@ export function Composer({
    * the answer, which would make every ordinary attachment feel slower to spare a rare one a
    * flicker.
    */
-  const images = useMemo(
-    () =>
-      staged
-        .filter((attachment) => stagedModality(attachment) === "image")
-        .map((attachment) => ({
+  const { images, files } = useMemo(() => {
+    const images: StagedImage[] = [];
+    const files: StagedFile[] = [];
+    // One pass for both strips. They are complements, so each attachment is asked the question once
+    // and lands in exactly one of them.
+    for (const attachment of staged) {
+      if (stagedModality(attachment) === "image") {
+        images.push({
           id: attachment.id,
           url: attachment.source.value,
           alt: attachment.filename,
           loading: attachment.status === "uploading",
-        })),
-    [staged],
-  );
-
-  /**
-   * NO `type` HERE, BECAUSE NOTHING HAS EVER READ ONE. This carried
-   * `type: attachment.source.mimeType`, `StagedFile` (`attachment-strip.tsx`) declares no such
-   * field, and `AttachmentStrip` draws the same `IconFile` for every file whatever its type. It
-   * survived because the array is a variable rather than a fresh object literal at the JSX site, so
-   * TypeScript's excess-property check — the thing that would have caught it — never ran.
-   *
-   * Deleted rather than adopted. Adding `type` to `StagedFile` and drawing a per-format label off
-   * it is a real improvement and a deliberately separate one: it is a design change to the tile,
-   * not the removal of a line that pretends to feed something.
-   *
-   * The complement of `images` above, and it has to be read as one: whatever is not an image is a
-   * card, so both halves must ask the same question of the same field or an attachment lands in
-   * both strips or in neither.
-   */
-  const files = useMemo(
-    () =>
-      staged
-        .filter((attachment) => stagedModality(attachment) !== "image")
-        .map((attachment) => ({
+        });
+      } else {
+        /*
+         * NO `type` HERE, BECAUSE NOTHING HAS EVER READ ONE. This carried
+         * `type: attachment.source.mimeType`, `StagedFile` (`attachment-strip.tsx`) declares no
+         * such field, and `AttachmentStrip` draws the same `IconFile` for every file whatever its
+         * type. It survived because the array is a variable rather than a fresh object literal at
+         * the JSX site, so TypeScript's excess-property check — the thing that would have caught
+         * it — never ran.
+         *
+         * Deleted rather than adopted. Adding `type` to `StagedFile` and drawing a per-format label
+         * off it is a real improvement and a deliberately separate one: it is a design change to
+         * the tile, not the removal of a line that pretends to feed something.
+         *
+         * The complement of `images` above, and it has to be read as one: whatever is not an image
+         * is a card, so both halves must ask the same question of the same field or an attachment
+         * lands in both strips or in neither.
+         */
+        files.push({
           id: attachment.id,
           name: attachment.filename ?? "Attachment",
           size: attachment.size,
           loading: attachment.status === "uploading",
-        })),
-    [staged],
-  );
+        });
+      }
+    }
+    return { images, files };
+  }, [staged]);
 
   const isBusy = pending || isSubmitting;
   const triggers = useMemo(

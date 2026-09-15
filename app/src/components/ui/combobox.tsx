@@ -13,6 +13,17 @@ import {
 } from "@/components/ui/input-group"
 import { IconChevronDown, IconX, IconCheck } from "@tabler/icons-react"
 
+/* Static, prop-free elements for the `render` slots below: hoisted out of the components so they are
+ * built once at module scope instead of on every render. */
+const comboboxClearButtonRender = (
+  <InputGroupButton variant="ghost" size="icon-xs" />
+)
+const comboboxTriggerRender = <ComboboxTrigger />
+const comboboxItemIndicatorRender = (
+  <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
+)
+const comboboxChipRemoveRender = <Button variant="ghost" size="icon-xs" />
+
 const Combobox = ComboboxPrimitive.Root
 
 function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
@@ -40,7 +51,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
-      render={<InputGroupButton variant="ghost" size="icon-xs" />}
+      render={comboboxClearButtonRender}
       className={cn(className)}
       {...props}
     >
@@ -71,7 +82,7 @@ function ComboboxInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
-            render={<ComboboxTrigger />}
+            render={comboboxTriggerRender}
             /* `ComboboxTrigger` draws a real `<button>`, which `Button` cannot tell from the one
              * call site here that draws a link. See the note in `button.tsx`. */
             nativeButton
@@ -150,9 +161,7 @@ function ComboboxItem({
     >
       {children}
       <ComboboxPrimitive.ItemIndicator
-        render={
-          <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
-        }
+        render={comboboxItemIndicatorRender}
       >
         <IconCheck className="pointer-events-none" />
       </ComboboxPrimitive.ItemIndicator>
@@ -252,7 +261,7 @@ function ComboboxChip({
       {children}
       {showRemove && (
         <ComboboxPrimitive.ChipRemove
-          render={<Button variant="ghost" size="icon-xs" />}
+          render={comboboxChipRemoveRender}
           className="-ml-1 opacity-50 hover:opacity-100"
           data-slot="combobox-chip-remove"
         >

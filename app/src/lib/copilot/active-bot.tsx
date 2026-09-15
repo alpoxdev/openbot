@@ -52,6 +52,11 @@ export function ActiveBotProvider({ children }: { children: ReactNode }) {
 export function useActiveBot(botId: string | undefined): void {
   const holder = useContext(ActiveBotContext);
   const value = useContext(ActiveBotValueContext);
+  /*
+   * `value` is rewritten every render — the provider puts a fresh literal in the ref — so depending
+   * on the object would re-run this on every unrelated render. `announce` is the only part of it the
+   * effect reads, and `setBotId` is stable.
+   */
   useEffect(() => {
     if (!holder) return;
     const previous = holder.current;
@@ -61,7 +66,7 @@ export function useActiveBot(botId: string | undefined): void {
       holder.current = previous;
       value?.announce(previous);
     };
-  }, [holder, value, botId]);
+  }, [holder, value?.announce, botId]);
 }
 
 /** The holder itself, to be read inside a handler at the moment it runs. */

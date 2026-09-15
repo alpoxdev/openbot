@@ -25,6 +25,16 @@ import { GALLERY_COMPONENTS } from "@/lib/copilot/gallery-registry";
  */
 const ORDER: Record<string, number> = { chart: 0, card: 1, decision: 2 };
 
+/**
+ * The registry by name.
+ *
+ * Built once rather than scanned per tile: a rail draws every granted component, and each tile
+ * asking the registry where its own entry is would walk the whole catalogue again.
+ */
+const COMPONENT_BY_NAME = new Map(
+  GALLERY_COMPONENTS.map((component) => [component.name, component]),
+);
+
 export function GalleryPreview({
   /**
    * What this Bot may actually answer with, as the deployment reports it.
@@ -107,7 +117,7 @@ export function GalleryPreview({
  * one to fit a tile; this draws at natural size, which is what the per-Bot panel below wants.
  */
 function PreviewOf({ name }: { name: string }) {
-  const component = GALLERY_COMPONENTS.find((entry) => entry.name === name);
+  const component = COMPONENT_BY_NAME.get(name);
   if (!component) return null;
   if (!component.preview) {
     /*

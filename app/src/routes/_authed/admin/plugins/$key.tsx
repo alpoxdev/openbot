@@ -50,6 +50,7 @@ import {
 import {
   connectionsQueryOptions,
   pluginsPageQueryOptions,
+  type PluginTool,
 } from "@/lib/plugins/queries";
 
 /**
@@ -253,9 +254,16 @@ function RouteComponent() {
     );
   }
 
-  /* The grant dialog's two halves of the tool list, split by what a boundary would see. */
-  const reads = server?.tools.filter((tool) => tool.effect !== "write") ?? [];
-  const writes = server?.tools.filter((tool) => tool.effect === "write") ?? [];
+  /*
+   * The grant dialog's two halves of the tool list, split by what a boundary would see, in one pass
+   * over the tools rather than one filter per half.
+   */
+  const reads: PluginTool[] = [];
+  const writes: PluginTool[] = [];
+  for (const tool of server?.tools ?? []) {
+    if (tool.effect === "write") writes.push(tool);
+    else reads.push(tool);
+  }
   const chosenWrites = writes.filter((tool) =>
     selectedRefs.has(tool.ref),
   ).length;

@@ -84,15 +84,19 @@ function SkillsPage() {
   /*
    * The server has ALREADY excluded skills this person may not see — `listSkills` scopes the query
    * to `owner_user_id is null or owner_user_id = me`, so somebody else's private skill is never read
-   * into the process. These two lines only sort what arrived into the two things the page draws.
+   * into the process. This loop only sorts what arrived into the two things the page draws.
    *
    * ONE CASE FALLS THROUGH ON PURPOSE, FOR NOW: an administrator receives everybody's skills, and
    * another person's lands in neither list. Not a leak, but an administrator cannot see here what
    * they are entitled to. Worth an owner column or a third section before this page is called done.
    */
   const skills = data?.skills ?? [];
-  const mine = skills.filter((skill) => skill.ownerUserId === me?.id);
-  const deployment = skills.filter((skill) => skill.ownerUserId === null);
+  const mine: typeof skills = [];
+  const deployment: typeof skills = [];
+  for (const skill of skills) {
+    if (skill.ownerUserId === me?.id) mine.push(skill);
+    if (skill.ownerUserId === null) deployment.push(skill);
+  }
 
   return (
     <DetailPanel

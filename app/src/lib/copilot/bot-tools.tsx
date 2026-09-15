@@ -161,18 +161,29 @@ export function BotTools() {
                 granted: [],
                 name: agent.name,
               };
-              for (const slug of chosen) {
-                try {
-                  await grantPlugin({
-                    agentId: agent.id,
-                    kind: "skill",
-                    ref: slug,
-                  });
-                  outcome.granted.push(slug);
-                } catch {
-                  outcome.failed.push(slug);
-                }
-              }
+              /*
+               * The grants do not depend on one another, so they go out together rather than as one
+               * round trip per skill. Each result is then written back in the order the card listed
+               * them, so the two arrays hold what they held when the calls were serial.
+               */
+              const landed = await Promise.all(
+                chosen.map(async (slug) => {
+                  try {
+                    await grantPlugin({
+                      agentId: agent.id,
+                      kind: "skill",
+                      ref: slug,
+                    });
+                    return true;
+                  } catch {
+                    return false;
+                  }
+                }),
+              );
+              chosen.forEach((slug, index) => {
+                if (landed[index]) outcome.granted.push(slug);
+                else outcome.failed.push(slug);
+              });
               // Once at the end rather than between every pair, matching `grantPlugin`'s own note.
               if (outcome.granted.length > 0) invalidatePlugins(queryClient);
               return outcome;

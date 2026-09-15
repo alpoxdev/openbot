@@ -150,6 +150,42 @@ export async function callComponentFunction(
 }
 
 /**
+ * One component reading one data function, through the query cache.
+ *
+ * Keyed on everything the request carries, so two cards asking the same question at the same moment
+ * share a single read rather than each making its own. `staleTime: 0` with `refetchOnMount:
+ * "always"` keeps the verdict fresh: the server checks this Bot's grant when it is called, so a
+ * remount asks again instead of showing what an earlier mount was told.
+ */
+export function componentFunctionQueryOptions(
+  component: string,
+  functionName: string,
+  days: number | undefined,
+  agentId: string,
+) {
+  return queryOptions({
+    queryKey: [
+      "components",
+      "function-call",
+      component,
+      functionName,
+      days ?? null,
+      agentId,
+    ] as const,
+    enabled: functionName !== "",
+    staleTime: 0,
+    refetchOnMount: "always",
+    queryFn: () =>
+      callComponentFunction(
+        component,
+        functionName,
+        days === undefined ? {} : { days },
+        agentId,
+      ),
+  });
+}
+
+/**
  * Ask the server whether this Bot may use this component right now; failures fail closed.
  *
  * `functions` are the data functions the component will read with these arguments. Naming them here

@@ -258,13 +258,18 @@ function Unwritable({
    * `problems` is rebuilt from the arguments on every render and the grant queries behind this card
    * poll, so a value-equal array arrives as a new identity every few seconds. Left to the deps, this
    * would answer the same tool call again on each of them.
+   *
+   * The dep is the text of the problems rather than their container, so the effect is asked again
+   * only when what it would answer with actually changed.
    */
   const answered = useRef(false);
+  const problemsKey = problems.join("\n");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `problems` is the array rebuilt every render; its text is the dep, so a value-equal array does not re-ask.
   useEffect(() => {
     if (answered.current) return;
     answered.current = true;
     void answer(respond, botCardAnswer.unwritable(problems));
-  }, [problems, respond]);
+  }, [problemsKey, respond]);
 
   return (
     <GalleryFrame

@@ -51,6 +51,8 @@ export function HandoffPanel({ agentId }: { agentId: string }) {
 
   if (handoff.isPending || !handoff.data) return null;
   const { enabled, canGrant, reachable, grantable } = handoff.data;
+  // Asked once per candidate row below, so the membership check is a lookup rather than a scan.
+  const reachableIds = new Set(reachable);
 
   // A Bot may not be granted itself, and the server refuses it, so it is not offered here either.
   const { candidates, granted, total } = handoffRoster({
@@ -160,7 +162,7 @@ export function HandoffPanel({ agentId }: { agentId: string }) {
               <ItemActions>
                 <Switch
                   aria-label={`Let this Bot ask ${candidate.name}`}
-                  checked={reachable.includes(candidate.id)}
+                  checked={reachableIds.has(candidate.id)}
                   disabled={!canGrant || setGrant.isPending}
                   onCheckedChange={(next: boolean) =>
                     setGrant.mutate({

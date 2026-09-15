@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PageSection } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,12 +32,9 @@ export function StandingInstructions() {
    *
    * Null is "has not been edited", which is not the same as "is empty": seeding the state with ""
    * and then filling it in when the read lands would overwrite whatever they had already started
-   * typing into a box that was ready before the network was.
+   * typing into a box that was ready before the network was. Nothing needs to copy the read into
+   * the draft either: `text` below reads straight through the null.
    */
-  useEffect(() => {
-    if (stored.data !== undefined && draft === null) setDraft(stored.data);
-  }, [stored.data, draft]);
-
   const text = draft ?? stored.data ?? "";
   const over = text.trim().length > INSTRUCTIONS_LIMIT;
   const unchanged = stored.data !== undefined && text === stored.data;

@@ -50,7 +50,7 @@ function Entry({ entry }: { entry: ComputerActivity }) {
     (typeof entry.exitCode === "number" && entry.exitCode !== 0);
 
   return (
-    <li className="border-border/60 border-b py-2 last:border-b-0">
+    <li className="border-border/60 border-b py-2 last:border-b-0 [contain-intrinsic-size:auto_2.75rem] [content-visibility:auto]">
       <div className="flex items-baseline gap-2">
         <Icon
           aria-hidden

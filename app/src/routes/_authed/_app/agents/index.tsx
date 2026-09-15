@@ -65,8 +65,24 @@ function AgentsScreen() {
     isPending: loading,
     isError: failed,
   } = useQuery(agentListQueryOptions());
-  const mine = agents?.filter((a) => a.mine);
-  const explore = agents?.filter(isSharedWithYou);
+  /*
+   * One pass, not two: both sections draw from the same response, and the second `filter` walked
+   * the whole roster again to answer a question the first walk already had in hand.
+   *
+   * `undefined` is preserved rather than flattened to `[]`. The arms below tell "no response yet"
+   * apart from "loaded and empty" with it (`failed && agents === undefined`), so both slices stay
+   * undefined until there is a list to split.
+   */
+  let mine: typeof agents;
+  let explore: typeof agents;
+  if (agents !== undefined) {
+    mine = [];
+    explore = [];
+    for (const agent of agents) {
+      if (agent.mine) mine.push(agent);
+      if (isSharedWithYou(agent)) explore.push(agent);
+    }
+  }
 
   // Creating wins if both are somehow set: it is the more recent intent.
   const showCreate = isCreating === true;

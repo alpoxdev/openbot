@@ -123,11 +123,16 @@ function RouteComponent() {
    * Needs-you prompts auto-open the screen panel, because the prompt with the reason on it — the
    * amber "the assistant needs you" row, and the masked field for a credential — is drawn on the
    * screen card in that panel. Nothing about a stuck Bot is actionable until this pane is open.
+   *
+   * Keyed on the transition into `needsYou`, and on nothing else. `show` is a fresh arrow function
+   * each render, so depending on it would re-fire this effect — and re-issue the navigation — on
+   * every render, which is the bug this dep array exists to close.
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `show` is rebuilt every render; depending on it re-runs this effect on every render.
   useEffect(() => {
     if (!needsYou) return;
     show("watch");
-  });
+  }, [needsYou]);
 
   // Browser activity may auto-open the screen once per run unless this run was dismissed.
   const dismissedEpoch = useRef<number | null>(null);

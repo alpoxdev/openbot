@@ -103,11 +103,11 @@ export function DataTable(props: Record<string, unknown>) {
                     type="button"
                     className="flex w-full items-center justify-between gap-3 whitespace-nowrap px-3 py-2.5 text-left hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                     onClick={() =>
-                      setSort({
+                      setSort((current) => ({
                         column: index,
                         ascending:
-                          sort?.column === index ? !sort.ascending : true,
-                      })
+                          current?.column === index ? !current.ascending : true,
+                      }))
                     }
                   >
                     {column}

@@ -296,6 +296,24 @@ function HostFoldersSection({
     ]),
   ).sort((left, right) => nameFor(left).localeCompare(nameFor(right)));
 
+  /*
+   * Grouped once here rather than filtered per Bot row: every row used to walk every grant and every
+   * pending request, and the summary walked both again.
+   */
+  const grantsByBot = new Map<string, HostFolderGrant[]>();
+  const pendingByBot = new Map<string, HostAccessPendingOperation[]>();
+  for (const grant of grants) {
+    if (grant.revoked) continue;
+    const held = grantsByBot.get(grant.botId);
+    if (held) held.push(grant);
+    else grantsByBot.set(grant.botId, [grant]);
+  }
+  for (const request of pending) {
+    const waiting = pendingByBot.get(request.botId);
+    if (waiting) waiting.push(request);
+    else pendingByBot.set(request.botId, [request]);
+  }
+
   return (
     <PageSection
       description="Choose folders a Bot can read on this computer. The desktop app asks before each edit or command. Access ends when you stop OpenBot."
@@ -329,13 +347,15 @@ function HostFoldersSection({
                 <ItemContent>
                   <ItemTitle title={botId}>{nameFor(botId)}</ItemTitle>
                   <ItemDescription>
-                    {summaryFor(botId, grants, pending)}
+                    {summaryFor(
+                      grantsByBot.get(botId)?.length ?? 0,
+                      pendingByBot.get(botId)?.length ?? 0,
+                    )}
                   </ItemDescription>
                   <FolderGrantList
-                    botId={botId}
-                    grants={grants}
+                    botGrants={grantsByBot.get(botId) ?? []}
+                    botPending={pendingByBot.get(botId) ?? []}
                     onRevoke={onRevoke}
-                    pending={pending}
                     revokingGrantId={revokingGrantId}
                   />
                 </ItemContent>
@@ -380,23 +400,16 @@ function HostFoldersSection({
 }
 
 function FolderGrantList({
-  botId,
-  grants,
+  botGrants,
+  botPending,
   onRevoke,
-  pending,
   revokingGrantId,
 }: {
-  botId: string;
-  grants: HostFolderGrant[];
+  botGrants: HostFolderGrant[];
+  botPending: HostAccessPendingOperation[];
   onRevoke: (grantId: string) => void;
-  pending: HostAccessPendingOperation[];
   revokingGrantId: string | null;
 }) {
-  const botGrants = grants.filter(
-    (grant) => grant.botId === botId && !grant.revoked,
-  );
-  const botPending = pending.filter((request) => request.botId === botId);
-
   if (botGrants.length === 0 && botPending.length === 0) return null;
 
   return (
@@ -435,15 +448,7 @@ function FolderGrantList({
   );
 }
 
-function summaryFor(
-  botId: string,
-  grants: HostFolderGrant[],
-  pending: HostAccessPendingOperation[],
-) {
-  const active = grants.filter(
-    (grant) => grant.botId === botId && !grant.revoked,
-  ).length;
-  const waiting = pending.filter((request) => request.botId === botId).length;
+function summaryFor(active: number, waiting: number) {
   const parts = [];
   if (active > 0)
     parts.push(`${active} read-only ${active === 1 ? "folder" : "folders"}`);

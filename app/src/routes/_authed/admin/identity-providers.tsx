@@ -187,7 +187,10 @@ function IdentityProvidersPage() {
                 <Input
                   id="providerId"
                   onChange={(event) =>
-                    setDraft({ ...draft, providerId: event.target.value })
+                    setDraft((current) => ({
+                      ...current,
+                      providerId: event.target.value,
+                    }))
                   }
                   placeholder="acme-okta"
                   required

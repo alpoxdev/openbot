@@ -53,7 +53,7 @@ export function ComputerPlaceholder(props: SVGProps<SVGSVGElement>) {
           <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.76923078298568726 0.76923078298568726"
+            baseFrequency="0.77 0.77"
             stitchTiles="stitch"
             numOctaves={3}
             result="noise"
@@ -146,10 +146,10 @@ export function ComputerPlaceholder(props: SVGProps<SVGSVGElement>) {
           cx={0}
           cy={0}
           r={1}
-          gradientTransform="matrix(229.838 -1654.36 2337.29 481.415 2278.37 2408.36)"
+          gradientTransform="matrix(229.8 -1654.4 2337.3 481.4 2278.4 2408.4)"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset={0.420388} stopColor="#9DF200" />
+          <stop offset={0.42} stopColor="#9DF200" />
           <stop offset={0.66} stopColor="#0099A9" />
           <stop offset={1} stopColor="#fff" />
         </radialGradient>

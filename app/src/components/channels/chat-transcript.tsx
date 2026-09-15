@@ -265,9 +265,11 @@ function describeParked(
   if (text) {
     return text;
   }
-  const named = files
-    .map((file) => file.filename)
-    .filter((filename) => filename !== undefined);
+  // One pass, not two: the filter that dropped the unnamed files was a second walk of the same
+  // array, and the map before it built an intermediate one to walk.
+  const named = files.flatMap((file) =>
+    file.filename === undefined ? [] : [file.filename],
+  );
 
   return named.length > 0 ? named.join(", ") : "attachment";
 }

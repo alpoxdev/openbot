@@ -447,7 +447,9 @@ test("builds the deployment image with Chromium OS deps, not a Cloak binary", ()
     expect(dockerfile).toContain("FROM ubuntu:24.04");
     expect(dockerfile).not.toContain("mcr.microsoft.com/playwright");
     expect(dockerfile).toContain("ARG PLAYWRIGHT_VERSION=1.62.1");
-    expect(dockerfile).not.toContain("ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright");
+    expect(dockerfile).not.toContain(
+      "ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+    );
     expect(dockerfile).toContain(
       "COPY --from=node-toolchain /usr/local /usr/local",
     );
@@ -481,9 +483,13 @@ test("builds the deployment image with Chromium OS deps, not a Cloak binary", ()
       "      dockerfile: agent-computer/Dockerfile",
     ].join("\n"),
   );
-  expect(compose).toContain("CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-false}");
+  expect(compose).toContain(
+    `CLOAKBROWSER_AUTO_UPDATE: \${CLOAKBROWSER_AUTO_UPDATE:-false}`,
+  );
   expect(compose).toContain("start_period: 1500s");
-  expect(compose).not.toContain("CLOAKBROWSER_AUTO_UPDATE: ${CLOAKBROWSER_AUTO_UPDATE:-}");
+  expect(compose).not.toContain(
+    `CLOAKBROWSER_AUTO_UPDATE: \${CLOAKBROWSER_AUTO_UPDATE:-}`,
+  );
 });
 
 test("takes Bun from the same immutable release in both computer images", () => {

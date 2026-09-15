@@ -1,62 +1,60 @@
 import { describe, expect, test } from "bun:test";
-import { createThreadReader } from "../src/channels/thread-status";
+import { localThreadStatus } from "../src/channels/thread-status";
+import type { ConversationStore } from "../src/conversations/store";
+import {
+  ConversationAccessError,
+  ConversationNotFoundError,
+} from "../src/conversations/types";
 
-/**
- * Turning Intelligence's answer about a thread into the two states a caller can act on.
- *
- * Intelligence has exactly one way to say "I have never heard of this thread": a 404 from
- * `getThread`. Everything else it can throw — a 500, a timeout, a network failure — means the
- * question could not be answered at all, and that is not the same thing. Collapsing the two would
- * make an outage look identical to a thread that genuinely does not exist, and a caller that
- * believed it would discard a remembered thread it should have kept.
- */
+function reader(readSnapshot: (...args: unknown[]) => Promise<unknown>) {
+  return { readSnapshot } as unknown as ConversationStore;
+}
 
-describe("reading whether Intelligence still has a thread", () => {
-  test("a thread it can produce is known", async () => {
-    const reader = createThreadReader({
-      getThread: async () => ({ id: "irrelevant" }),
+describe("server conversation availability", () => {
+  test.each([
+    ["ready", "local"],
+    ["history_only", "local"],
+    ["not_ready", "import_pending"],
+  ])(
+    "preserves %s readiness instead of treating it as empty",
+    async (localReadiness, status) => {
+      const store = reader(async () => ({ thread: { localReadiness } }));
+      expect(await localThreadStatus(store, "thread", "owner")).toEqual({
+        status,
+        localReadiness,
+      });
+    },
+  );
+
+  test.each([new ConversationNotFoundError(), new ConversationAccessError()])(
+    "missing and foreign records have indistinguishable unavailable responses",
+    async (error) => {
+      const store = reader(async () => {
+        throw error;
+      });
+      expect(await localThreadStatus(store, "thread", "owner")).toEqual({
+        status: "external_unavailable",
+      });
+    },
+  );
+
+  test("database failures remain failures, never evidence that a remembered ID is gone", async () => {
+    const error = new Error("database offline");
+    const store = reader(async () => {
+      throw error;
     });
-    await expect(reader("thread-1", "user-1")).resolves.toBe("known");
+    await expect(localThreadStatus(store, "thread", "owner")).rejects.toBe(
+      error,
+    );
   });
 
-  test("a 404 means the thread is unknown, not a failure", async () => {
-    const reader = createThreadReader({
-      getThread: async () => {
-        throw { status: 404 };
-      },
+  test("uses the authenticated owner and exact historical identifier", async () => {
+    const calls: unknown[][] = [];
+    const store = reader(async (...args) => {
+      calls.push(args);
+      return { thread: { localReadiness: "ready" } };
     });
-    await expect(reader("thread-1", "user-1")).resolves.toBe("unknown");
-  });
-
-  test("a 500 is not swallowed as unknown — the check itself failed", async () => {
-    const failure = { status: 500 };
-    const reader = createThreadReader({
-      getThread: async () => {
-        throw failure;
-      },
-    });
-    await expect(reader("thread-1", "user-1")).rejects.toBe(failure);
-  });
-
-  test("a plain Error, with no status field to duck-type on, is not swallowed either", async () => {
-    const failure = new Error("network unreachable");
-    const reader = createThreadReader({
-      getThread: async () => {
-        throw failure;
-      },
-    });
-    await expect(reader("thread-1", "user-1")).rejects.toBe(failure);
-  });
-
-  test("asks Intelligence about the exact thread and user it was given", async () => {
-    const calls: Array<{ threadId: string; userId: string }> = [];
-    const reader = createThreadReader({
-      getThread: async (params) => {
-        calls.push(params);
-        return { id: params.threadId };
-      },
-    });
-    await reader("thread-77", "user-99");
-    expect(calls).toEqual([{ threadId: "thread-77", userId: "user-99" }]);
+    await localThreadStatus(store, "historical-id", "original-owner");
+    expect(calls).toEqual([[{ id: "original-owner" }, "historical-id"]]);
   });
 });

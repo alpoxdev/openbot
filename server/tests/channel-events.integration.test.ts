@@ -22,6 +22,7 @@ import {
   agents,
   channelMemberships,
   channels,
+  conversationThreads,
   deploymentPackages,
   intelligenceChannelMappings,
   users,
@@ -153,6 +154,9 @@ const createdPackageIds: string[] = [];
 
 afterEach(async () => {
   for (const channelId of createdChannelIds.splice(0)) {
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channelId));
     await database
       .delete(intelligenceChannelMappings)
       .where(eq(intelligenceChannelMappings.channelId, channelId));

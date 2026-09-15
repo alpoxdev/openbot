@@ -1,8 +1,8 @@
 /**
  * A few words saying what a conversation is about, since a channel's name is only its Bots' names.
  *
- * Not a headless turn: `run-turn.ts` takes the thread lock, which would refuse the person's own next
- * message with 409 for the lock's TTL. `getThreadMessages` takes no lock, so this reads and asks.
+ * Not a headless turn: `run-turn.ts` owns a run lease while asking the model, whereas
+ * `readSnapshot` only rebuilds the durable canonical view needed for naming.
  *
  * Offer then claim, like `work/culler.ts`. The offer is derived from the table rather than from an
  * event, so a missed sweep costs two seconds where a missed event would cost the name entirely.
@@ -15,6 +15,11 @@ import {
   channels,
   intelligenceChannelMappings,
 } from "../db/schema";
+import {
+  ConversationAccessError,
+  ConversationConflictError,
+  ConversationNotFoundError,
+} from "../conversations/types";
 import { DEFAULT_MAX_ATTEMPTS, type WorkQueue } from "../work/queue";
 import { CHANNEL_ACTIVITY_TOPIC, type ChannelActivityEvent } from "./events";
 import { oneLine } from "./text";
@@ -30,10 +35,13 @@ const MAX_EXCERPT_GRAPHEMES = 600;
 /** A seam, so a test drives every path with no key and no network. Null means nothing worth writing. */
 export type ChannelTitler = (excerpt: string) => Promise<string | null>;
 
-/** The one method of the Intelligence client this file uses. Narrowed for the same reason. */
+/** Local conversation history for a channel's earliest member thread. */
 export type ThreadTranscript = {
-  getThreadMessages(params: { threadId: string; userId: string }): Promise<{
-    messages: { role: string; content?: unknown }[];
+  readSnapshot: (
+    actor: { id: string },
+    threadId: string,
+  ) => Promise<{
+    snapshot: { messages: { role: string; content?: unknown }[] };
   }>;
 };
 
@@ -179,10 +187,16 @@ export async function summariseClaimedChannels(
 }
 
 /**
- * Three words, not a boolean, so `"not yet"` is told apart from the rest: a conversation offered the
- * instant somebody speaks may have no message in Intelligence yet, and finishing it never names it.
+ * Explicit outcomes, not a boolean, so `"not yet"` is told apart from terminal history states: a
+ * conversation offered the instant somebody speaks may have no message in Intelligence yet, and
+ * finishing it never names it.
  */
-type Attempt = "written" | "not yet" | "nothing to name it with";
+type Attempt =
+  | "written"
+  | "not yet"
+  | "nothing to name it with"
+  | "conversation history unavailable"
+  | "conversation history invalid";
 
 async function summariseOne(
   options: ChannelSummaryOptions,
@@ -217,11 +231,14 @@ async function summariseOne(
   // No member holds a thread for this channel yet, so there is nothing to read — yet.
   if (!owner) return "not yet";
 
-  const excerpt = await openingOf(options.transcript, owner);
-  if (!excerpt) return "not yet";
+  const opening = await openingOf(options.transcript, owner);
+  if (opening.kind === "not yet") return "not yet";
+  if (opening.kind === "unavailable") return "conversation history unavailable";
+  if (opening.kind === "invalid") return "conversation history invalid";
+  if (!opening.excerpt) return "nothing to name it with";
 
   // Final, unlike the two above: no key or nothing usable does not change a minute later.
-  const answer = await options.title(excerpt);
+  const answer = await options.title(opening.excerpt);
   if (!answer) return "nothing to name it with";
 
   const title = oneLine(stripWrappingQuotes(answer), MAX_SUMMARY_GRAPHEMES);
@@ -264,32 +281,52 @@ async function summariseOne(
 }
 
 /* The opening exchange only: a conversation that wandered is still filed under what it opened for. */
+type Opening =
+  | { kind: "ready"; excerpt: string }
+  | { kind: "not yet" }
+  | { kind: "unavailable" }
+  | { kind: "invalid" };
+
 async function openingOf(
   transcript: ThreadTranscript,
   owner: { threadId: string; userId: string },
-): Promise<string | null> {
-  const history = await transcript.getThreadMessages({
-    threadId: owner.threadId,
-    userId: owner.userId,
-  });
-  const question = history.messages.find((message) => message.role === "user");
-  if (!question) return null;
-  const answer = history.messages.find(
-    (message) => message.role === "assistant",
-  );
+): Promise<Opening> {
+  let read: unknown;
+  try {
+    read = await transcript.readSnapshot({ id: owner.userId }, owner.threadId);
+  } catch (error) {
+    if (isUnavailable(error)) return { kind: "unavailable" };
+    if (isInvalidSnapshotError(error)) return { kind: "invalid" };
+    // A database or platform failure is transient work-queue error semantics, not an empty
+    // conversation. Let the caller release it with the actual error.
+    throw error;
+  }
+
+  if (!isSnapshotRead(read)) return { kind: "invalid" };
+  const { messages } = read.snapshot;
+  // A thread can be offered before Intelligence has committed its first message. This is the only
+  // empty state that should be retried as "not yet".
+  if (messages.length === 0) return { kind: "not yet" };
+
+  const question = messages.find((message) => message.role === "user");
+  if (!question) return { kind: "ready", excerpt: "" };
+  const answer = messages.find((message) => message.role === "assistant");
 
   const rawAsked = textOf(question.content);
-  if (!rawAsked) return null;
+  if (!rawAsked) return { kind: "ready", excerpt: "" };
   // A channel a routine opened has the firing frame wrapped around its first message, not a
   // person's words. Unwrapped before it can become the title, same as the transcript unwraps it
   // before it can become what a person reads.
   const asked = readFiring(rawAsked) ?? rawAsked;
   const replied = answer ? textOf(answer.content) : "";
 
-  return oneLine(
-    replied ? `Asked: ${asked}\nAnswered: ${replied}` : `Asked: ${asked}`,
-    MAX_EXCERPT_GRAPHEMES,
-  );
+  return {
+    kind: "ready",
+    excerpt: oneLine(
+      replied ? `Asked: ${asked}\nAnswered: ${replied}` : `Asked: ${asked}`,
+      MAX_EXCERPT_GRAPHEMES,
+    ),
+  };
 }
 
 /* `content` is a string or an array of parts; anything else is no text, not `[object Object]`. */
@@ -297,13 +334,52 @@ function textOf(content: unknown): string {
   if (typeof content === "string") return content.trim();
   if (!Array.isArray(content)) return "";
   return content
-    .map((part) =>
-      part && typeof part === "object" && "text" in part
-        ? String((part as { text?: unknown }).text ?? "")
-        : "",
-    )
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (!part || typeof part !== "object" || !("text" in part)) return "";
+      const typed = part as { type?: unknown; text?: unknown };
+      if (typed.type !== undefined && typed.type !== "text") return "";
+      return typeof typed.text === "string" ? typed.text : "";
+    })
     .join(" ")
     .trim();
+}
+
+function isUnavailable(error: unknown): boolean {
+  if (
+    error instanceof ConversationNotFoundError ||
+    error instanceof ConversationAccessError
+  )
+    return true;
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: unknown }).code;
+  return (
+    code === "conversation_not_found" || code === "conversation_access_denied"
+  );
+}
+
+function isInvalidSnapshotError(error: unknown): boolean {
+  if (error instanceof ConversationConflictError) return true;
+  if (!error || typeof error !== "object") return false;
+  return (error as { code?: unknown }).code === "conversation_conflict";
+}
+
+function isSnapshotRead(read: unknown): read is {
+  snapshot: { messages: { role: string; content?: unknown }[] };
+} {
+  if (!read || typeof read !== "object") return false;
+  const snapshot = (read as { snapshot?: unknown }).snapshot;
+  if (!snapshot || typeof snapshot !== "object") return false;
+  const messages = (snapshot as { messages?: unknown }).messages;
+  return (
+    Array.isArray(messages) &&
+    messages.every(
+      (message) =>
+        Boolean(message) &&
+        typeof message === "object" &&
+        typeof (message as { role?: unknown }).role === "string",
+    )
+  );
 }
 
 /* Only a matched pair wrapping the whole answer: a title containing a quote keeps it. */

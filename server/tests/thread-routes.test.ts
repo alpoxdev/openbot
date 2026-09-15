@@ -1,127 +1,212 @@
 import { describe, expect, test } from "bun:test";
-import type { MiddlewareHandler } from "hono";
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import type { AppVariables } from "../src/auth/guards";
+import type { ConversationStore } from "../src/conversations/store";
+import {
+  ConversationAccessError,
+  ConversationNotFoundError,
+} from "../src/conversations/types";
 import { createThreadIdentity } from "../src/channels/thread-identity";
-import type { ThreadReader } from "../src/channels/thread-routes";
 import { createThreadRoutes } from "../src/channels/thread-routes";
 
-/**
- * Handing out a thread id for a conversation with no channel.
- *
- * The direct Bot chat needs one before it starts, and it has to come from here: a thread the chat
- * names itself is one nothing can later attribute to this deployment.
- */
-
 const identity = createThreadIdentity("openbot-test");
-
-const asSignedIn: MiddlewareHandler<{ Variables: AppVariables }> = async (
+const actor = {
+  id: "u1",
+  email: "someone@openbot.test",
+  role: "user" as const,
+};
+const signedIn: MiddlewareHandler<{ Variables: AppVariables }> = async (
   context,
   next,
 ) => {
-  context.set("actor", { id: "u1", email: "someone@openbot.test" });
-  return next();
+  context.set("actor", actor);
+  await next();
+};
+const profiles = { getWithin: async () => null };
+function fixture(overrides: Partial<ConversationStore> = {}, guard = signedIn) {
+  const calls: unknown[][] = [];
+  const rows = new Map<string, unknown>();
+  const store = {
+    createOwnedThread: async (...args: unknown[]) => {
+      calls.push(args);
+      const id = args[1] as string;
+      rows.set(id, { thread: { localReadiness: "ready" } });
+      return { id };
+    },
+    readSnapshot: async (_actor: unknown, id: string) => {
+      if (!rows.has(id)) throw new ConversationNotFoundError();
+      return rows.get(id);
+    },
+    ...overrides,
+  } as unknown as ConversationStore;
+  const app = new Hono().route(
+    "/threads",
+    createThreadRoutes(identity, guard, store, profiles),
+  );
+  return { app, calls, rows };
+}
+const mintInput = {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ agentId: "bot" }),
 };
 
-function app(reader?: ThreadReader) {
-  return new Hono().route(
-    "/threads",
-    createThreadRoutes(identity, asSignedIn, reader),
-  );
-}
-
-async function mint() {
-  const response = await app().request("http://openbot.local/threads/mint", {
-    method: "POST",
-  });
-  return (await response.json()) as { threadId: string };
-}
-
-describe("minting a thread", () => {
-  test("returns one this deployment can recognise later", async () => {
-    const { threadId } = await mint();
+describe("persisted direct thread identities", () => {
+  test("registers owner and bot before returning an immediately readable local ID", async () => {
+    const { app, calls } = fixture();
+    const response = await app.request("http://openbot.test/threads/mint", {
+      ...mintInput,
+      body: JSON.stringify({
+        agentId: "bot",
+        ownerUserId: "other",
+        role: "admin",
+      }),
+    });
+    expect(response.status).toBe(200);
+    const { threadId } = await response.json();
     expect(identity.owns(threadId)).toBe(true);
-  });
-
-  test("returns a different one every time", async () => {
-    const first = await mint();
-    const second = await mint();
-    expect(first.threadId).not.toBe(second.threadId);
-  });
-
-  test("does not answer a caller with no session", async () => {
-    const refusing: MiddlewareHandler<{ Variables: AppVariables }> = async (
-      context,
-    ) => context.json({ error: "Unauthorized." }, 401);
-    const response = await new Hono()
-      .route("/threads", createThreadRoutes(identity, refusing))
-      .request("http://openbot.local/threads/mint", { method: "POST" });
-    expect(response.status).toBe(401);
-  });
-});
-
-describe("checking whether a remembered thread is still known upstream", () => {
-  test("answers known when the reader can produce the thread", async () => {
-    const threadId = identity.mint();
-    const response = await app(async () => "known").request(
-      `http://openbot.local/threads/${threadId}`,
+    expect(calls).toEqual([[actor, threadId, "bot", profiles]]);
+    const status = await app.request(`http://openbot.test/threads/${threadId}`);
+    expect(await status.json()).toEqual({
+      status: "local",
+      localReadiness: "ready",
+    });
+    const next = await app.request(
+      "http://openbot.test/threads/mint",
+      mintInput,
     );
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ known: true });
+    expect((await next.json()).threadId).not.toBe(threadId);
   });
 
-  test("answers unknown when the reader reports Intelligence has never heard of it", async () => {
-    const threadId = identity.mint();
-    const response = await app(async () => "unknown").request(
-      `http://openbot.local/threads/${threadId}`,
-    );
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ known: false });
+  test.each(["", "{}", '{"agentId":""}', "null", "[]"])(
+    "rejects missing bot selection: %s",
+    async (body) => {
+      const { app, calls } = fixture();
+      expect(
+        (
+          await app.request("http://openbot.test/threads/mint", {
+            ...mintInput,
+            body,
+          })
+        ).status,
+      ).toBe(400);
+      expect(calls).toEqual([]);
+    },
+  );
+
+  test("denies a bot that the authenticated actor cannot use", async () => {
+    const { app } = fixture({
+      createOwnedThread: async () => {
+        throw new ConversationAccessError();
+      },
+    });
+    expect(
+      (await app.request("http://openbot.test/threads/mint", mintInput)).status,
+    ).toBe(404);
   });
 
-  test("answers 502, not the reader's own error, when the check itself fails", async () => {
-    // A message this specific would leak whatever the upstream call failed with; the caller only
-    // ever needs to know the check could not be completed.
-    const reader = async () => {
-      throw new Error(
-        "intelligence-platform: connection reset by peer at 10.0.4.7:443",
-      );
-    };
-    const response = await app(reader).request(
-      `http://openbot.local/threads/${identity.mint()}`,
+  test("a failed commit returns no minted ID", async () => {
+    const { app } = fixture({
+      createOwnedThread: async () => {
+        throw new Error("private database diagnostics");
+      },
+    });
+    const response = await app.request(
+      "http://openbot.test/threads/mint",
+      mintInput,
     );
     expect(response.status).toBe(502);
-    const body = (await response.json()) as { error?: unknown };
-    expect(typeof body.error).toBe("string");
-    expect(body.error).not.toContain("connection reset by peer");
-    expect(body.error).not.toContain("10.0.4.7");
-  });
-
-  test("is not registered at all when the deployment has no reader, and mint keeps working", async () => {
-    // No reader means no way to configure one, not an outage: `POST /mint` must be unaffected by a
-    // route that was never wired up.
-    const bare = app();
-    const status = await bare.request(
-      `http://openbot.local/threads/${identity.mint()}`,
-    );
-    expect(status.status).toBe(404);
-
-    const minted = await bare.request("http://openbot.local/threads/mint", {
-      method: "POST",
+    expect(await response.json()).toEqual({
+      error: "Could not create conversation.",
     });
-    expect(minted.status).toBe(200);
   });
 
-  test("asks about the user the session established, not one smuggled in the request", async () => {
-    const calls: Array<{ threadId: string; userId: string }> = [];
-    const threadId = identity.mint();
-    const reader = async (id: string, userId: string) => {
-      calls.push({ threadId: id, userId });
-      return "known" as const;
-    };
-    await app(reader).request(
-      `http://openbot.local/threads/${threadId}?userId=someone-else`,
+  test("anonymous requests reach neither mint nor status storage", async () => {
+    const guard: MiddlewareHandler<{ Variables: AppVariables }> = async (
+      context,
+    ) => context.json({ error: "Unauthorized" }, 401);
+    const { app, calls } = fixture({}, guard);
+    expect(
+      (await app.request("http://openbot.test/threads/mint", mintInput)).status,
+    ).toBe(401);
+    expect(
+      (await app.request(`http://openbot.test/threads/${identity.mint()}`))
+        .status,
+    ).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  test("does not claim old missing history is deleted or mint a replacement", async () => {
+    const { app, calls } = fixture();
+    const response = await app.request(
+      `http://openbot.test/threads/${identity.mint()}`,
     );
-    expect(calls).toEqual([{ threadId, userId: "u1" }]);
+    expect(await response.json()).toEqual({ status: "external_unavailable" });
+    expect(calls).toEqual([]);
+  });
+
+  test("looks up an owned opaque persisted ID without a UUID gate", async () => {
+    const storedId = "g002-live-431595-threadId";
+    const lookedUp: unknown[][] = [];
+    const { app, rows } = fixture({
+      readSnapshot: async (...args: unknown[]) => {
+        lookedUp.push(args);
+        return { thread: { localReadiness: "history_only" } };
+      },
+    });
+    rows.set(storedId, { thread: { localReadiness: "history_only" } });
+    const response = await app.request(
+      `http://openbot.test/threads/${encodeURIComponent(storedId)}`,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "local",
+      localReadiness: "history_only",
+    });
+    expect(lookedUp).toEqual([[{ id: actor.id }, storedId]]);
+  });
+
+  test("denies a foreign opaque ID through the authenticated store lookup", async () => {
+    const storedId = "g002-live-431595-threadId";
+    const { app } = fixture({
+      readSnapshot: async () => {
+        throw new ConversationAccessError();
+      },
+    });
+    const response = await app.request(
+      `http://openbot.test/threads/${encodeURIComponent(storedId)}`,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "external_unavailable",
+    });
+  });
+
+  test("unknown opaque IDs remain unavailable without adoption", async () => {
+    const storedId = "g002-live-unknown-thread";
+    const { app, calls } = fixture();
+    const response = await app.request(
+      `http://openbot.test/threads/${encodeURIComponent(storedId)}`,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "external_unavailable",
+    });
+    expect(calls).toEqual([]);
+  });
+
+  test("status outage stays a redacted failure rather than a missing-history response", async () => {
+    const { app } = fixture({
+      readSnapshot: async () => {
+        throw new Error("private database diagnostics");
+      },
+    });
+    const response = await app.request(
+      `http://openbot.test/threads/${identity.mint()}`,
+    );
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: "Could not check thread status.",
+    });
   });
 });

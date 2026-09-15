@@ -10,9 +10,11 @@ import {
   agentProfiles,
   agents,
   channels,
+  conversationThreads,
   intelligenceChannelMappings,
   routineRuns,
   routines,
+  userRoles,
   users,
 } from "../src/db/schema";
 import {
@@ -56,6 +58,9 @@ afterEach(async () => {
     await database
       .delete(intelligenceChannelMappings)
       .where(eq(intelligenceChannelMappings.channelId, channelId));
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channelId));
     await database.delete(channels).where(eq(channels.id, channelId));
   }
   for (const agentId of createdAgentIds.splice(0)) {
@@ -80,6 +85,7 @@ async function createUser(): Promise<AgentActor> {
     email: `${id}@example.test`,
     name: "Routine Store Test User",
   });
+  await database.insert(userRoles).values({ userId: id, role: "user" });
   createdUserIds.push(id);
   return { id, role: "user" };
 }

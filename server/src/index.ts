@@ -1,8 +1,4 @@
 import { randomUUID } from "node:crypto";
-import {
-  CopilotKitIntelligence,
-  IntelligenceAgentRunner,
-} from "@copilotkit/runtime/v2";
 import { serve } from "bun";
 import { eq } from "drizzle-orm";
 import { COMPUTER_GUIDANCE } from "../../shared/bot-prompt";
@@ -70,7 +66,6 @@ import { createSnapshotStore } from "./computer/snapshot-store";
 import { loadConfig } from "./config";
 import {
   type IdentifyActor,
-  type IdentifyUser,
   mountCopilotRuntime,
   resolveRuntimeAgents,
   runtimeModelForEnvironment,
@@ -81,6 +76,11 @@ import {
   createCredentialStore,
   resolveModelApiKey,
 } from "./credentials";
+import { createConversationEngine } from "./conversations/engine";
+import { createConversationImportStore } from "./conversations/import-store";
+import { createConversationImporter } from "./conversations/importer";
+import type { ConversationObserver } from "./conversations/observability";
+import { createConversationStore } from "./conversations/store";
 import { createDatabase } from "./db/client";
 import { intelligenceChannelMappings } from "./db/schema";
 import { createOnboardingStore } from "./people/onboarding";
@@ -138,31 +138,9 @@ async function resolveRequestActor(request: Request): Promise<{
   };
 }
 
-/** The Intelligence projection of {@link resolveRequestActor}: threads are scoped to this person. */
-const identifyUser: IdentifyUser = async (request) => {
-  const { id, name } = await resolveRequestActor(request);
-  return { id, name };
-};
-
-/**
- * The authorization projection of the same person: agent visibility is decided from this.
- *
- * An unauthenticated request resolves to a person who owns nothing rather than an error, so the
- * runtime can still describe itself, `/info` reports the licence and the public roster, which is
- * what a deployment check reads to tell "the licence is invalid" apart from "chat is silently
- * broken". It grants nothing: this actor matches no private profile and is not an administrator,
- * and a run still fails in `identifyUser`, which has no anonymous case because a thread must belong
- * to somebody.
- */
-const ANONYMOUS_ACTOR = { id: "", role: "user" } as const;
-
 const identifyActor: IdentifyActor = async (request) => {
-  try {
-    const { id, role } = await resolveRequestActor(request);
-    return { id, role };
-  } catch {
-    return ANONYMOUS_ACTOR;
-  }
+  const { id, role } = await resolveRequestActor(request);
+  return { id, role };
 };
 
 const config = loadConfig();
@@ -170,6 +148,30 @@ const config = loadConfig();
 // `serverPort` in config.ts for what `process.env.PORT ?? …` did with `PORT=` instead.
 const port = config.port;
 const database = createDatabase(config.databaseUrl);
+// The observer boundary admits only fixed categories, measurements and hashed correlation IDs.
+// Keep these operator records in the deployment's access-controlled process logs.
+const logConversationObservation: ConversationObserver = (observation) => {
+  console.info(
+    JSON.stringify({ type: "conversation-observation", ...observation }),
+  );
+};
+const conversationStore = createConversationStore(database);
+const conversationImportStore = createConversationImportStore(database, {
+  encryptionKey: config.keyEncryptionKey,
+  observe: logConversationObservation,
+});
+const conversationImporter = createConversationImporter({
+  database,
+  importStore: conversationImportStore,
+  conversations: conversationStore,
+});
+const conversationEngine = createConversationEngine({
+  store: conversationStore,
+  observe: logConversationObservation,
+  // Channel activity is an announcement, not a boot-time read. The callback runs only after an
+  // engine starts or finishes a run, by which point the channel store below has been constructed.
+  onRunBusy: ({ threadId, busy }) => channelStore.signalBusy(threadId, busy),
+});
 await initializeDevActorUser(database, config.singleUser);
 // The vault, built before the agent store because a customer's agent may sit behind a key and that
 // key belongs here rather than on the agent row. See agents/auth-header.ts.
@@ -800,37 +802,11 @@ const buildAgentFor = async ({
   return agent;
 };
 
-/*
- * The pair a headless turn is driven through, built ONCE.
- *
- * Not the runtime's own pair: `mountCopilotRuntime` keeps its client and its runner inside
- * `CopilotRuntime` and hands neither back, and reaching into that object would be a worse seam than
- * building our own from the same three settings. Built from `config.runtime.intelligence`, which is
- * required and not optional — `RuntimeCapabilities` has exactly one mode and every Intelligence field
- * with it (`config.ts:10-22`), and `loadConfig` refuses to boot without them — so there is no
- * not-in-Intelligence-mode branch to write here. If a second mode is ever added, THIS is the line that
- * has to grow a guard, and the routine runner must then be left off `createApp` entirely.
- *
- * One runner for the process, reused across firings: it opens a socket per run and holds no idle
- * connection, but its `threads` map is per instance, and a runner per turn would fragment the
- * already-running check that keeps two turns off one thread. See `routines/run-turn.ts`.
- */
-const routineIntelligence = new CopilotKitIntelligence({
-  apiUrl: config.runtime.intelligence.apiUrl,
-  wsUrl: config.runtime.intelligence.gatewayWsUrl,
-  apiKey: config.runtime.intelligence.apiKey,
-});
-const routineAgentRunner = new IntelligenceAgentRunner({
-  url: routineIntelligence.ɵgetRunnerWsUrl(),
-  authToken: routineIntelligence.ɵgetRunnerAuthToken(),
-});
-
 const routineRunner = createRoutineRunner({
   routineStore,
   channelStore,
   runTurn: createTurnRunner({
-    intelligence: routineIntelligence,
-    runner: routineAgentRunner,
+    engine: conversationEngine,
     buildAgentFor,
   }),
 });
@@ -838,18 +814,16 @@ const routineRunner = createRoutineRunner({
 /**
  * The runtime, and the two things beside it a hop needs.
  *
- * `agentFor` builds the addressed Bot exactly the way a person's run builds it, and `history` reads
- * the conversation through the same client. Taken from here rather than assembled again, because a
- * Bot built by parallel wiring drifts the first time one of these arguments changes, and the drift is
- * invisible: it runs, and quietly holds different tools or a different role from the one the person
- * is talking to.
+ * `agentFor` builds the addressed Bot exactly the way a person's run builds it. Taken from here
+ * rather than assembled again, because a Bot built by parallel wiring drifts the first time one of
+ * these arguments changes, and the drift is invisible: it runs, and quietly holds different tools
+ * or a different role from the one the person is talking to.
  */
 const copilotRuntime = mountCopilotRuntime(
   config,
   runtimeModel,
   loadAgentsForActor,
   resolveRuntimeModelApiKey,
-  identifyUser,
   identifyActor,
   stallGuard,
   loadToolsForActor,
@@ -936,11 +910,6 @@ const copilotRuntime = mountCopilotRuntime(
     });
     return passing ? [passing, asking] : [asking];
   },
-  // A run started or ended on a thread; light the channel it belongs to. Fire-and-forget, keyed by
-  // thread, and a scratch thread maps to no channel and signals nowhere.
-  (input) => {
-    void channelStore.signalBusy(input.threadId, input.busy).catch(() => {});
-  },
   // What this person has told every coworker of theirs, in every channel. See user-instructions.ts.
   loadInstructionsForActor,
   // The files on a message, put in front of the model rather than left as links it cannot follow —
@@ -949,6 +918,7 @@ const copilotRuntime = mountCopilotRuntime(
   // And that those files went out in a send, written by the person who sent them and only for rows
   // they uploaded. See markAttachmentsSentForActor.
   markAttachmentsSentForActor,
+  { store: conversationStore, engine: conversationEngine },
 );
 
 /**
@@ -1006,8 +976,7 @@ if (config.handoff.maxDepth > 0 && config.handoff.maxPerRun > 0) {
           initiator: { kind: "handoff", id: fromBotId },
         });
       },
-      history: copilotRuntime.history,
-      lock: copilotRuntime.threadLock,
+      engine: conversationEngine,
       /*
        * A scratch thread of the addressed Bot's own, one per hop.
        *
@@ -1042,12 +1011,6 @@ if (config.handoff.maxDepth > 0 && config.handoff.maxPerRun > 0) {
       // to its channel by the store; a scratch thread maps to none and signals nowhere.
       setBusy: (input) => channelStore.signalBusy(input.threadId, input.busy),
       newRunId: () => randomUUID(),
-      // The same address and the same token the runtime uses. Assembling either from configuration
-      // produced a runner every join was refused for, because the thread's active run is a lock the
-      // platform issues rather than something an API key can claim.
-      runner: new IntelligenceAgentRunner(
-        copilotRuntime.runnerConnection(),
-      ) as never,
     }),
   });
 
@@ -1155,7 +1118,7 @@ repeatAfterEach(
 const channelSummaries = {
   database,
   queue: createWorkQueue(database),
-  transcript: routineIntelligence,
+  transcript: conversationEngine,
   title: createChannelTitler({
     model: runtimeModel.defaultModel,
     resolveApiKey: resolveRuntimeModelApiKey,
@@ -1257,6 +1220,12 @@ const app = createApp(
     }
     const text = await tool.execute(args);
     return { text, isError: text.startsWith(REFUSAL_MARKER) };
+  },
+  conversationStore,
+  {
+    importStore: conversationImportStore,
+    importer: conversationImporter,
+    observe: logConversationObservation,
   },
 );
 

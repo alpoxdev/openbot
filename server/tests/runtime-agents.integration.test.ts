@@ -15,7 +15,9 @@ import {
   channelAgents,
   channelMemberships,
   channels,
+  conversationThreads,
   intelligenceChannelMappings,
+  userRoles,
   users,
 } from "../src/db/schema";
 import { TEST_POOL, testDatabaseUrl } from "./support/database";
@@ -48,6 +50,9 @@ afterEach(async () => {
     await database
       .delete(intelligenceChannelMappings)
       .where(eq(intelligenceChannelMappings.channelId, channelId));
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channelId));
     await database.delete(channels).where(eq(channels.id, channelId));
   }
   for (const agentId of createdAgentIds.splice(0)) {
@@ -72,6 +77,7 @@ async function createUser(role: AgentActor["role"] = "user") {
     email: `${id}@example.test`,
     name: "Runtime Agents Test User",
   });
+  await database.insert(userRoles).values({ userId: id, role });
   createdUserIds.push(id);
   return { id, role } satisfies AgentActor;
 }

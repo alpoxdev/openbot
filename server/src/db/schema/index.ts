@@ -2,7 +2,9 @@
 
 export * from "./components";
 export * from "./computer";
+export * from "./conversation-imports";
 export * from "./core";
+export * from "./conversations";
 export * from "./coworker";
 export * from "./plugins";
 export * from "./work";

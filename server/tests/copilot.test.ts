@@ -19,6 +19,7 @@ import {
   resolveRuntimeAgents,
   runtimeModelForEnvironment,
   standingRoleMessage,
+  mountCopilotRuntime,
 } from "../src/copilot";
 import { grantedToolGuidance } from "../src/plugins/tools";
 import { loadTenantPackage } from "../src/tenant-package";
@@ -92,7 +93,7 @@ describe("deployment model selection", () => {
     environment: Record<string, string | undefined>,
   ) {
     const config = loadConfig({ ...testEnvironment(), ...environment });
-    expect(config.runtime.mode).toBe("intelligence");
+    expect(config.runtime.mode).toBe("sse");
     const tenantPackage = await loadTenantPackage(packagePath);
     const model = runtimeModelForEnvironment(tenantPackage.model, environment);
     const recorder = new LLMock();
@@ -2441,5 +2442,87 @@ describe("where an attachment reaches the model, and where it deliberately does 
       (messages[4] as { content?: { source?: unknown }[] }).content?.[0]
         ?.source,
     ).toMatchObject({ type: "data" });
+  });
+});
+
+describe("the guarded CopilotKit dispatcher", () => {
+  const conversation = {
+    store: {
+      authorize: async () => "none",
+      readSnapshot: async () => {
+        throw new Error("readSnapshot must not run for denied routes");
+      },
+      getActiveRun: async () => null,
+    },
+    engine: {
+      run: () => {
+        throw new Error("engine.run must not run for denied routes");
+      },
+      connect: () => {
+        throw new Error("engine.connect must not run for denied routes");
+      },
+      isRunning: async () => {
+        throw new Error("engine.isRunning must not run for denied routes");
+      },
+      stop: async () => {
+        throw new Error("engine.stop must not run for denied routes");
+      },
+    },
+  };
+
+  function mounted() {
+    return mountCopilotRuntime(
+      loadConfig(testEnvironment()),
+      runtimeModelForEnvironment(testEnvironment()),
+      async () => [],
+      async () => null,
+      async () => {
+        throw new Error("unauthenticated");
+      },
+      { watch: () => () => {} } as never,
+      undefined,
+      undefined,
+      "/api/copilotkit",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      conversation as never,
+    );
+  }
+
+  test("unauthenticated run, connect and stop never reach the engine", async () => {
+    const { handler } = mounted();
+    const run = await handler.request(
+      "http://openbot.test/api/copilotkit/agent/general-assistant/run",
+      { method: "POST", body: JSON.stringify({ threadId: "t" }) },
+    );
+    expect(run.status).toBe(401);
+    const connect = await handler.request(
+      "http://openbot.test/api/copilotkit/agent/general-assistant/connect",
+      { method: "POST", body: JSON.stringify({ threadId: "t" }) },
+    );
+    expect(connect.status).toBe(401);
+    const stop = await handler.request(
+      "http://openbot.test/api/copilotkit/agent/general-assistant/stop/t",
+      { method: "POST" },
+    );
+    expect(stop.status).toBe(401);
+  });
+
+  test("unknown and memory routes are not mounted", async () => {
+    const { handler } = mounted();
+    const clear = await handler.request(
+      "http://openbot.test/api/copilotkit/threads/clear",
+      { method: "POST" },
+    );
+    expect(clear.status).toBe(401);
+    const memories = await handler.request(
+      "http://openbot.test/api/copilotkit/memories",
+    );
+    expect([401, 404]).toContain(memories.status);
   });
 });

@@ -13,6 +13,10 @@ import {
   type ThreadTranscript,
 } from "../src/channels/summary";
 import { createThreadIdentity } from "../src/channels/thread-identity";
+import {
+  ConversationAccessError,
+  ConversationNotFoundError,
+} from "../src/conversations/types";
 import { createDatabase } from "../src/db/client";
 import {
   agentProfiles,
@@ -20,6 +24,8 @@ import {
   channelMemberships,
   channels,
   intelligenceChannelMappings,
+  userRoles,
+  conversationThreads,
   users,
   workItems,
 } from "../src/db/schema";
@@ -50,6 +56,9 @@ afterEach(async () => {
     await database
       .delete(intelligenceChannelMappings)
       .where(eq(intelligenceChannelMappings.channelId, channelId));
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channelId));
     await database.delete(channels).where(eq(channels.id, channelId));
   }
   for (const agentId of createdAgentIds.splice(0)) {
@@ -74,6 +83,7 @@ async function createUser(): Promise<AgentActor> {
     email: `${id}@example.test`,
     name: "Channel Summary Test User",
   });
+  await database.insert(userRoles).values({ userId: id, role: "user" });
   createdUserIds.push(id);
   return { id, role: "user" };
 }
@@ -105,11 +115,13 @@ async function createUsedChannel(owner: AgentActor) {
 /** A transcript with one question and one answer in it, which is what a title is made from. */
 function transcriptOf(question: string, answer?: string): ThreadTranscript {
   return {
-    getThreadMessages: async () => ({
-      messages: [
-        { role: "user", content: question },
-        ...(answer ? [{ role: "assistant", content: answer }] : []),
-      ],
+    readSnapshot: async () => ({
+      snapshot: {
+        messages: [
+          { role: "user", content: question },
+          ...(answer ? [{ role: "assistant", content: answer }] : []),
+        ],
+      },
     }),
   };
 }
@@ -352,7 +364,9 @@ describe("naming a claimed conversation", () => {
     // never named at all.
     const report = await summariseClaimedChannels(
       options({
-        transcript: { getThreadMessages: async () => ({ messages: [] }) },
+        transcript: {
+          readSnapshot: async () => ({ snapshot: { messages: [] } }),
+        },
       }),
     );
 
@@ -368,6 +382,113 @@ describe("naming a claimed conversation", () => {
     expect(item?.runAt.getTime()).toBeGreaterThan(Date.now());
   });
 
+  test("finishes work when transcript history is unavailable", async () => {
+    for (const failure of [
+      new ConversationNotFoundError(),
+      new ConversationAccessError(),
+    ]) {
+      const owner = await createUser();
+      const channel = await createUsedChannel(owner);
+      await offer(channel.id);
+
+      const report = await summariseClaimedChannels(
+        options({
+          transcript: {
+            readSnapshot: async () => {
+              throw failure;
+            },
+          },
+        }),
+      );
+
+      expect(report.skipped).toContainEqual({
+        channelId: channel.id,
+        reason: "conversation history unavailable",
+      });
+      const [item] = await database
+        .select({
+          finishedAt: workItems.finishedAt,
+          attempts: workItems.attempts,
+        })
+        .from(workItems)
+        .where(eq(workItems.key, channel.id));
+      expect(item?.finishedAt).not.toBeNull();
+      expect(item?.attempts).toBe(1);
+    }
+  });
+
+  test("ignores malformed text parts instead of inventing object text", async () => {
+    const owner = await createUser();
+    const channel = await createUsedChannel(owner);
+    await offer(channel.id);
+
+    let excerptSeen = "";
+    const report = await summariseClaimedChannels(
+      options({
+        transcript: {
+          readSnapshot: async () => ({
+            snapshot: {
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: { injected: "no" } },
+                    { type: "image", text: "image alt is not transcript text" },
+                    { type: "text", text: "Which receipts count?" },
+                  ],
+                },
+                {
+                  role: "assistant",
+                  content: [
+                    { type: "text", text: "The flights count." },
+                    { type: "text", text: { injected: "no" } },
+                  ],
+                },
+              ],
+            },
+          }),
+        },
+        title: async (excerpt) => {
+          excerptSeen = excerpt;
+          return "Receipt rules";
+        },
+      }),
+    );
+
+    expect(report.written).toContain(channel.id);
+    expect(excerptSeen).toContain("Which receipts count?");
+    expect(excerptSeen).toContain("The flights count.");
+    expect(excerptSeen).not.toContain("[object Object]");
+  });
+
+  test("finishes malformed snapshots instead of retrying them as empty", async () => {
+    const owner = await createUser();
+    const channel = await createUsedChannel(owner);
+    await offer(channel.id);
+
+    const report = await summariseClaimedChannels(
+      options({
+        transcript: {
+          readSnapshot: async () =>
+            ({ snapshot: { messages: "not messages" } }) as never,
+        },
+      }),
+    );
+
+    expect(report.skipped).toContainEqual({
+      channelId: channel.id,
+      reason: "conversation history invalid",
+    });
+    const [item] = await database
+      .select({
+        finishedAt: workItems.finishedAt,
+        attempts: workItems.attempts,
+      })
+      .from(workItems)
+      .where(eq(workItems.key, channel.id));
+    expect(item?.finishedAt).not.toBeNull();
+  });
+
   test("a conversation that no longer exists is dropped, not retried", async () => {
     const owner = await createUser();
     const channel = await createUsedChannel(owner);
@@ -375,6 +496,9 @@ describe("naming a claimed conversation", () => {
     // The channel goes while its naming is still queued. A queue key is not a foreign key, so the
     // work outlives the thing it was about — which happens for real on a delete, and happens on
     // every integration test that seeds a channel and tears it down.
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channel.id));
     await database.delete(channels).where(eq(channels.id, channel.id));
 
     await summariseClaimedChannels(options({}));

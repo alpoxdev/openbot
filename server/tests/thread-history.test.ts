@@ -1,99 +1,130 @@
 import { describe, expect, test } from "bun:test";
-import { historyOrEmpty, isMissingThread } from "../src/copilot";
+import { createStallGuard } from "../src/channels/stall-guard";
+import { loadConfig } from "../src/config";
+import { mountCopilotRuntime } from "../src/copilot";
+import { createConversationEngine } from "../src/conversations/engine";
+import type { ConversationStore } from "../src/conversations/store";
+import { testEnvironment } from "./support/environment";
 
-/**
- * Reading history on a thread the platform has never seen.
- *
- * A thread id is minted before the thread exists, so this is the opening move of every new
- * conversation and it was answering 500. The decision is the whole of the change, and it is tested
- * here against the real functions rather than a copy of them: the previous attempt (#71) tested a
- * re-implementation of its own middleware, which passes with the shipped code deleted.
- */
-
-/**
- * A `PlatformRequestError` as the platform client constructs one.
- *
- * Built by hand because the class is not re-exported from `@copilotkit/runtime/v2` and the package's
- * `exports` map reaches nothing that holds it — which is also why the code under test matches on the
- * shape. The constructor sets the message, then `status`, then `name`, so this is the same object.
- */
-function platformError(status: number): Error {
-  const error = new Error(`Intelligence platform error ${status}`);
-  error.name = "PlatformRequestError";
-  (error as Error & { status: number }).status = status;
-  return error;
+function mounted() {
+  let identities = 0;
+  let storeCalls = 0;
+  const roles: string[] = [];
+  const store = {
+    authorize: async () => {
+      storeCalls += 1;
+      return "none";
+    },
+  } as unknown as ConversationStore;
+  const engine = createConversationEngine({ store });
+  const args: Parameters<typeof mountCopilotRuntime> = [
+    loadConfig(testEnvironment()),
+    { provider: "openai", defaultModel: "test-model" },
+    async (actor) => {
+      roles.push(actor.role);
+      return [
+        {
+          id: "bot",
+          name: "Test Bot",
+          type: "built_in",
+          title: "Test",
+          roleDescription: "Test fixture",
+        },
+      ];
+    },
+    async () => null,
+    async () => {
+      identities += 1;
+      return identities === 1
+        ? { id: "user-a", role: "user" }
+        : { id: "admin-b", role: "admin" };
+    },
+    createStallGuard({ stallMs: 0 }),
+  ];
+  args[16] = { store, engine };
+  const runtime = mountCopilotRuntime(...args);
+  return {
+    ...runtime,
+    identities: () => identities,
+    storeCalls: () => storeCalls,
+    roles,
+  };
 }
 
-describe("recognising a thread the platform does not have", () => {
-  test("a 404 from the platform is a missing thread", () => {
-    expect(isMissingThread(platformError(404))).toBe(true);
-  });
-
-  test("a 500 from the platform is not", () => {
-    // The one that matters. An outage answered with an empty history tells the browser the
-    // conversation is gone and invites somebody to start it over.
-    expect(isMissingThread(platformError(500))).toBe(false);
-  });
-
-  test("a 403 from the platform is not", () => {
-    // A bad key is not an absent thread, and reading it as one would hide a misconfiguration behind
-    // a conversation that looks new.
-    expect(isMissingThread(platformError(403))).toBe(false);
-  });
-
-  test("an unrelated error carrying a 404 is not", () => {
-    /*
-     * Both halves are checked, so something else with a `status` of 404 on it — a fetch wrapper, a
-     * vendor SDK — does not get a thread's history replaced with nothing.
-     */
-    const other = new Error("some other failure");
-    (other as Error & { status: number }).status = 404;
-    expect(isMissingThread(other)).toBe(false);
-  });
-
-  test("a plain object shaped like one is not", () => {
-    expect(isMissingThread({ name: "PlatformRequestError", status: 404 })).toBe(
-      false,
+describe("local history runtime boundary", () => {
+  test("agent discovery retains the same authenticated actor instead of resolving a second identity", async () => {
+    const runtime = mounted();
+    const response = await runtime.handler.request(
+      "http://openbot.test/api/copilotkit/info",
     );
+    const info = await response.json();
+    expect({ status: response.status, info }).toMatchObject({ status: 200 });
+    expect(runtime.identities()).toBe(1);
+    expect(runtime.roles.length).toBeGreaterThan(0);
+    expect(runtime.roles.every((role) => role === "user")).toBe(true);
+    expect(info.mode).toBe("sse");
+    expect(info).not.toHaveProperty("licenseStatus");
   });
 
-  test("nothing thrown at all is not", () => {
-    expect(isMissingThread(undefined)).toBe(false);
-    expect(isMissingThread(null)).toBe(false);
-  });
-});
-
-describe("reading a history that may not exist yet", () => {
-  const empty = { messages: [] as string[] };
-
-  test("a thread with history returns it", async () => {
-    const history = { messages: ["hello"] };
-    expect(await historyOrEmpty(async () => history, empty)).toBe(history);
-  });
-
-  test("a thread the platform does not have reads as empty", async () => {
-    expect(
-      await historyOrEmpty(async () => {
-        throw platformError(404);
-      }, empty),
-    ).toEqual({ messages: [] });
+  test.each([
+    "/api/copilotkit",
+    "/api/copilotkit?unexpected=1",
+    "/api/copilotkit/memories",
+    "/api/copilotkit/threads/clear",
+  ])("does not forward disallowed root or hosted routes: %s", async (path) => {
+    const runtime = mounted();
+    const response = await runtime.handler.request(
+      `http://openbot.test${path}`,
+      { method: "POST" },
+    );
+    expect(response.status).toBe(404);
+    expect(runtime.storeCalls()).toBe(0);
   });
 
-  test("a platform outage still throws", async () => {
-    // Not swallowed, not turned into an empty conversation. This is the assertion that would fail if
-    // the branch were widened to any failure.
-    await expect(
-      historyOrEmpty(async () => {
-        throw platformError(500);
-      }, empty),
-    ).rejects.toThrow("Intelligence platform error 500");
+  test.each(["not-json", "[]", '{"input":{"threadId":"nested"}}'])(
+    "refuses malformed or obsolete nested runtime input before history access: %s",
+    async (body) => {
+      const runtime = mounted();
+      const response = await runtime.handler.request(
+        "http://openbot.test/api/copilotkit/agent/bot/run",
+        {
+          method: "POST",
+          body,
+          headers: { "content-type": "application/json" },
+        },
+      );
+      expect(response.status).toBe(400);
+      expect(runtime.storeCalls()).toBe(0);
+    },
+  );
+
+  test("caps streamed JSON bodies even without Content-Length", async () => {
+    const runtime = mounted();
+    const response = await runtime.handler.request(
+      "http://openbot.test/api/copilotkit/agent/bot/run",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          threadId: "t",
+          text: "x".repeat(4 * 1024 * 1024),
+        }),
+        headers: { "content-type": "application/json" },
+      },
+    );
+    expect(response.status).toBe(413);
+    expect(runtime.storeCalls()).toBe(0);
   });
 
-  test("an error that is not the platform's still throws", async () => {
-    await expect(
-      historyOrEmpty(async () => {
-        throw new Error("the network went away");
-      }, empty),
-    ).rejects.toThrow("the network went away");
+  test("malformed encoded agent IDs are refused rather than producing an internal error", async () => {
+    const runtime = mounted();
+    const response = await runtime.handler.request(
+      "http://openbot.test/api/copilotkit/agent/%FF/run",
+      {
+        method: "POST",
+        body: JSON.stringify({ threadId: "t" }),
+      },
+    );
+    expect(response.status).toBe(400);
+    expect(runtime.storeCalls()).toBe(0);
   });
 });

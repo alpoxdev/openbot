@@ -38,7 +38,12 @@ import type { ChannelEventHub } from "./channels/events";
 import { type ChannelStore, createChannelRoutes } from "./channels/routes";
 import type { ThreadIdentity } from "./channels/thread-identity";
 import { createThreadRoutes } from "./channels/thread-routes";
-import { createThreadReader } from "./channels/thread-status";
+import {
+  createConversationImportRoutes,
+  type ConversationImportRouteDependencies,
+} from "./conversations/import-routes";
+import { createConversationRoutes } from "./conversations/routes";
+import type { ConversationStore } from "./conversations/store";
 import { createComponentRoutes } from "./components/routes";
 import type { SandboxedStore } from "./components/sandboxed";
 import { createSandboxedRoutes } from "./components/sandboxed-routes";
@@ -52,7 +57,6 @@ import type { CredentialAdminService, CredentialInput } from "./credentials";
 import type { Database } from "./db/client";
 import type { HostAccessBroker } from "./host-access/broker";
 import { createHostAccessRoutes } from "./host-access/routes";
-import { createIntelligenceClient } from "./intelligence-client";
 import type { OnboardingStore } from "./people/onboarding";
 import { parsePageLimit } from "./paging";
 import { type PeopleStore, MAX_PAGE } from "./people/store";
@@ -294,17 +298,39 @@ export function createApp(
   desktopHostToken?: string,
   /** Server-owned tools that are not MCP but use the same signed agent callback route. */
   deploymentToolCaller?: DeploymentToolCaller,
+  /** Local conversation store. Absent leaves owned history routes unmounted. */
+  conversationStore?: ConversationStore,
+  /**
+   * Explicit, administrator-triggered conversation import control plane.
+   *
+   * Appended after `conversationStore` on purpose: these are positional, so inserting this
+   * dependency anywhere else silently shifts every existing call site's arguments by one.
+   * Absent leaves import routes unmounted and performs no source reads.
+   */
+  conversationImports?: Omit<
+    ConversationImportRouteDependencies,
+    "requireUser"
+  >,
 ) {
   const app = new Hono<{ Variables: AppVariables }>();
 
   app.get("/health", (context) => context.json({ status: "ok" }));
-  // Projected, never the raw runtime. config.runtime carries the Intelligence contract, including
-  // INTELLIGENCE_API_KEY and the licence token, and this endpoint is reachable by anyone. Returning
-  // the object wholesale would serve deployment secrets to the browser. Add fields here explicitly.
-  app.get("/api/capabilities", async (context) =>
-    context.json({
+  // Projected, never the raw runtime. Returning the object wholesale would serve deployment
+  // secrets to the browser. Add fields here explicitly. durableHistory is true only when the
+  // complete history schema answers; a partial schema/store failure is not advertised as ready.
+  app.get("/api/capabilities", async (context) => {
+    let durableHistory = false;
+    if (conversationStore) {
+      try {
+        await conversationStore.assertReady();
+        durableHistory = config.runtime.durableHistory;
+      } catch {
+        durableHistory = false;
+      }
+    }
+    return context.json({
       mode: config.runtime.mode,
-      durableHistory: config.runtime.durableHistory,
+      durableHistory,
       /*
        * Whether a Bot may answer with an interface it wrote itself.
        *
@@ -334,8 +360,8 @@ export function createApp(
        * companies use this deployment, which is not theirs to have before they sign in.
        */
       ssoConfigured: ((await identityProviders?.list()) ?? []).length > 0,
-    }),
-  );
+    });
+  });
   /*
    * Registering an identity provider is an administrator's decision, not a signed-in one.
    *
@@ -1000,6 +1026,23 @@ export function createApp(
       return context.json({ accepted: true }, 202);
     });
   }
+  // Owned conversation reads, before the CopilotKit dispatcher catch-all so GET history
+  // is never vendor fallthrough.
+  if (conversationStore) {
+    app.route(
+      "/api/copilotkit",
+      createConversationRoutes(conversationStore, requireUser),
+    );
+  }
+  if (conversationImports) {
+    app.route(
+      "/api/admin/conversation-imports",
+      createConversationImportRoutes({
+        ...conversationImports,
+        requireUser,
+      }),
+    );
+  }
   // The CopilotKit runtime, behind the same session guard as every other API route. Mounted last so
   // its own routing under /api/copilotkit cannot shadow an OpenBot route declared above.
   if (copilotHandler) {
@@ -1372,20 +1415,14 @@ export function createApp(
     );
   }
 
-  if (threadIdentity) {
+  if (threadIdentity && conversationStore && agentProfileStore) {
     app.route(
       "/api/threads",
       createThreadRoutes(
         threadIdentity,
         requireUser,
-        // config.ts refuses to boot without the full Intelligence contract (see copilot.ts's
-        // header comment), so `config.runtime.intelligence` is never missing here. Built from it
-        // rather than assumed, though: this is the one place besides the runtime mount itself that
-        // needs to reach Intelligence, and it should keep working unmodified if that guarantee ever
-        // loosens and a deployment can legitimately have no reader to build.
-        createThreadReader(
-          createIntelligenceClient(config.runtime.intelligence),
-        ),
+        conversationStore,
+        agentProfileStore,
       ),
     );
   }

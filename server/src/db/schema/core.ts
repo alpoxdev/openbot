@@ -322,8 +322,8 @@ export const channels = pgTable(
       },
     ),
     /**
-     * When this channel was deleted, or null. Soft: the row, the transcript, and the Intelligence
-     * thread stay intact, and every read path filters on this instead. Channel grain, because
+     * When this channel was deleted, or null. Soft: the row and PostgreSQL conversation history
+     * stay intact, and every read path filters on this instead. Channel grain, because
      * deleting is for everyone — per-member hiding would be a membership fact instead.
      */
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

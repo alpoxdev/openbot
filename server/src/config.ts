@@ -1,30 +1,14 @@
 /**
- * What the runtime can do. There is exactly one answer because CopilotKit Intelligence is required
- * for durable threads and memory. Configuration the product cannot function without belongs at the
- * boot boundary.
+ * What the runtime can do. Conversations are durable in this deployment's PostgreSQL.
+ * CopilotKit Intelligence is not a boot requirement.
  */
 import { singleUserEnabled } from "./auth/dev-actor";
 import type { ActionPolicy } from "./computer/policy";
 import { parseActionPolicy } from "./computer/policy-store";
 
 export type RuntimeCapabilities = {
-  mode: "intelligence";
+  mode: "sse";
   durableHistory: true;
-  intelligence: IntelligenceSettings;
-};
-
-/**
- * The Intelligence contract. Three values are required; see runtimeCapabilities.
- *
- * `licenseToken` is optional. Managed Intelligence derives entitlement from the project key, and
- * `@copilotkit/runtime` declares `licenseToken` optional with a `COPILOTKIT_LICENSE_TOKEN` fallback
- * of its own. A deployment that still holds one keeps passing it; nothing here requires it.
- */
-export type IntelligenceSettings = {
-  apiUrl: string;
-  gatewayWsUrl: string;
-  apiKey: string;
-  licenseToken?: string;
 };
 
 export type DockerComputerConfig = {
@@ -160,7 +144,7 @@ export type DeploymentConfig = {
    */
   agentEndpointAllowedHosts: ReadonlySet<string>;
   /**
-   * What this deployment calls itself, when more than one shares an Intelligence project.
+   * What this deployment calls itself, keeping its conversation identifiers distinct.
    *
    * Absent, the tenant package's id stands in, which separates deployments running different
    * packages but not a copy of one running alongside the original. See channels/thread-identity.ts.
@@ -595,45 +579,10 @@ function authConfig(
   };
 }
 
-/**
- * Resolve the Intelligence contract, or refuse to start.
- *
- * The three addressing values are required together. A partial set is the more dangerous shape than
- * none at all: it means somebody intended to configure Intelligence and got it wrong, so failing on
- * the partial set alone (as this did) let a completely unconfigured deployment through as if that
- * were a choice.
- *
- * COPILOTKIT_LICENSE_TOKEN IS NO LONGER ONE OF THEM. Managed Intelligence issues a single project
- * key and derives entitlement from it, and requiring a second credential here sent people hunting
- * for a token the platform had stopped handing out. It is still read and still forwarded when a
- * deployment sets one, which is what a self-hosted Intelligence with its own licence needs.
- */
-function runtimeCapabilities(environment: Environment): RuntimeCapabilities {
-  const settings = {
-    apiUrl: url(environment, "INTELLIGENCE_API_URL"),
-    gatewayWsUrl: url(environment, "INTELLIGENCE_GATEWAY_WS_URL"),
-    apiKey: optional(environment, "INTELLIGENCE_API_KEY"),
-    licenseToken: optional(environment, "COPILOTKIT_LICENSE_TOKEN"),
-  };
-
-  const missing = Object.entries({
-    INTELLIGENCE_API_URL: settings.apiUrl,
-    INTELLIGENCE_GATEWAY_WS_URL: settings.gatewayWsUrl,
-    INTELLIGENCE_API_KEY: settings.apiKey,
-  })
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `CopilotKit Intelligence is required and is not configured. Missing: ${missing.join(", ")}`,
-    );
-  }
-
+function runtimeCapabilities(_environment: Environment): RuntimeCapabilities {
   return {
-    mode: "intelligence",
+    mode: "sse",
     durableHistory: true,
-    intelligence: settings as IntelligenceSettings,
   };
 }
 

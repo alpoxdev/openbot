@@ -19,13 +19,13 @@ describe("health endpoint", () => {
 });
 
 describe("runtime capabilities", () => {
-  test("reports the Intelligence runtime without exposing configuration secrets", async () => {
+  test("does not advertise durable history when no conversation store is provided", async () => {
     const response = await app.request("http://openbot.local/api/capabilities");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      mode: "intelligence",
-      durableHistory: true,
+      mode: "sse",
+      durableHistory: false,
       // Default-on. The browser reads this to decide whether to offer the tool that generates an
       // interface, so it has to be here and not only in the runtime.
       generativeUi: true,
@@ -37,8 +37,7 @@ describe("runtime capabilities", () => {
     });
   });
 
-  // The runtime object holds the Intelligence API key and licence token. This endpoint has no
-  // authentication, so a projection bug here publishes deployment secrets to anyone who asks.
+  // Public capabilities must never reveal deployment credentials, including unused old source keys.
   test("never serves the Intelligence credentials", async () => {
     const response = await app.request("http://openbot.local/api/capabilities");
     const body = await response.text();

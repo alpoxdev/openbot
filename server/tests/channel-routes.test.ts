@@ -37,6 +37,7 @@ import {
   channelAgents,
   channelMemberships,
   channels,
+  conversationThreads,
   deploymentPackages,
   intelligenceChannelMappings,
   users,
@@ -346,8 +347,8 @@ describe("channel routes", () => {
   ] as const)(
     "maps known store errors from %s",
     async (method, error, status, message) => {
-      const store = fakeStore({
-        ...(method === "create"
+      const store = fakeStore(
+        method === "create"
           ? {
               create: async () => {
                 throw error;
@@ -357,8 +358,8 @@ describe("channel routes", () => {
               get: async () => {
                 throw error;
               },
-            }),
-      });
+            },
+      );
       const app = appFor(store);
       const response =
         method === "create"
@@ -753,6 +754,9 @@ const createdPackageIds: string[] = [];
 
 afterEach(async () => {
   for (const channelId of createdChannelIds.splice(0)) {
+    await database
+      .delete(conversationThreads)
+      .where(eq(conversationThreads.channelId, channelId));
     await database
       .delete(intelligenceChannelMappings)
       .where(eq(intelligenceChannelMappings.channelId, channelId));

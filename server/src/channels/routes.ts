@@ -10,6 +10,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+import { createConversationWithin } from "../conversations/store";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import {
@@ -296,6 +297,14 @@ export function createChannelStore(
       userId: actor.id,
       channelId: id,
       threadId,
+    });
+    await createConversationWithin(transaction, {
+      id: threadId,
+      ownerUserId: actor.id,
+      channelId: id,
+      agentId: agentIds[0],
+      provenance: "local",
+      localReadiness: "ready",
     });
 
     return { id, name, agentIds, threadId, active: true, lastMessageAt: null };

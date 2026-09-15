@@ -1,4 +1,7 @@
-import { GALLERY_COMPONENTS } from "@/lib/copilot/gallery-registry";
+import {
+  GALLERY_COMPONENTS,
+  type GalleryComponent,
+} from "@/lib/copilot/gallery-registry";
 
 /**
  * The answers a Bot can give, drawn rather than described.
@@ -26,14 +29,25 @@ import { GALLERY_COMPONENTS } from "@/lib/copilot/gallery-registry";
 const ORDER: Record<string, number> = { chart: 0, card: 1, decision: 2 };
 
 /**
- * The registry by name.
+ * The registry by name, built on first use rather than at module load.
  *
- * Built once rather than scanned per tile: a rail draws every granted component, and each tile
- * asking the registry where its own entry is would walk the whole catalogue again.
+ * `gallery-registry` eagerly imports every file in this directory, so this file is evaluated
+ * *while* the registry is still initializing. Reading `GALLERY_COMPONENTS` at module scope is then
+ * a read of a binding that does not exist yet: it throws "Cannot access before initialization"
+ * during module evaluation, which aborts the whole import graph and leaves the app blank. Deferring
+ * the read to the first render keeps the cycle harmless.
+ *
+ * Memoized because a rail draws every granted component, and each tile asking the registry where
+ * its own entry is would walk the whole catalogue again.
  */
-const COMPONENT_BY_NAME = new Map(
-  GALLERY_COMPONENTS.map((component) => [component.name, component]),
-);
+let componentByName: Map<string, GalleryComponent> | undefined;
+
+function componentsByName(): Map<string, GalleryComponent> {
+  componentByName ??= new Map(
+    GALLERY_COMPONENTS.map((component) => [component.name, component]),
+  );
+  return componentByName;
+}
 
 export function GalleryPreview({
   /**
@@ -117,7 +131,7 @@ export function GalleryPreview({
  * one to fit a tile; this draws at natural size, which is what the per-Bot panel below wants.
  */
 function PreviewOf({ name }: { name: string }) {
-  const component = COMPONENT_BY_NAME.get(name);
+  const component = componentsByName().get(name);
   if (!component) return null;
   if (!component.preview) {
     /*

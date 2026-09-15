@@ -4,8 +4,8 @@ import {
   activityFor,
   clearActivity,
   recordActivity,
-} from "../src/lib/computers/activity";
-import { setComputerStateMutationOptions } from "../src/lib/computers/mutations";
+} from "@/lib/computers/activity";
+import { setComputerStateMutationOptions } from "@/lib/computers/mutations";
 
 const realFetch = globalThis.fetch;
 

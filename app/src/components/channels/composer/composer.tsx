@@ -35,7 +35,7 @@ import {
 } from "@/lib/channels/attachments";
 import { newId } from "@/lib/new-id";
 import { cn } from "@/lib/utils";
-import { Button } from "../../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   attachmentsConfigFor,
   FILE_PICKER_ACCEPT,

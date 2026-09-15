@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { socketUrl } from "../src/lib/socket-url";
+import { socketUrl } from "@/lib/socket-url";
 
 const at = (protocol: string, hostname: string, host: string) => ({
   protocol,

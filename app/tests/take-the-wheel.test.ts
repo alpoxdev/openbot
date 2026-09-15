@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { pageCoordinates } from "../src/components/computer/take-the-wheel";
+import { pageCoordinates } from "@/components/computer/take-the-wheel";
 
 /**
  * Coordinate conversion cases for scaled, offset, and not-yet-loaded screenshots.

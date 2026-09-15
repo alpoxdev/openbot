@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { router } from "../src/router";
+import { router } from "@/router";
 
 test("provides the generated index route", () => {
   expect(router.routesByPath["/"]?.fullPath).toBe("/");

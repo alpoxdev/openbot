@@ -23,7 +23,7 @@ import {
 } from "@/lib/agents/queries";
 import { useStartChannel } from "@/lib/channels/start";
 import { useSkillCommands } from "@/lib/plugins/skill-commands";
-import { newId } from "../../../../lib/new-id";
+import { newId } from "@/lib/new-id";
 
 /**
  * Creates the channel on first send. The selected coworker stays in the URL so profile links and

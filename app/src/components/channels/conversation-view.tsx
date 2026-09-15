@@ -19,7 +19,7 @@ import {
   reduceQueue,
 } from "@/components/channels/composer";
 import { attachmentUrl } from "@/lib/channels/attachments";
-import { newId } from "../../lib/new-id";
+import { newId } from "@/lib/new-id";
 
 export function ConversationView({
   messages,

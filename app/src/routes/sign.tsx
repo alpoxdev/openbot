@@ -17,7 +17,7 @@ import {
   type AuthProviderId,
   authProvidersQueryOptions,
   currentUserQueryOptions,
-} from "../lib/auth/queries";
+} from "@/lib/auth/queries";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 

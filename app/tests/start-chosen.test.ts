@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { startWithChosen } from "../src/lib/channels/start";
+import { startWithChosen } from "@/lib/channels/start";
 
 /**
  * A conversation whose coworker the person picked themselves has to reach the trail the same way a

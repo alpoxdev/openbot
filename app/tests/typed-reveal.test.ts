@@ -3,7 +3,7 @@ import {
   isNaming,
   TYPING_MAX_SECONDS,
   typingSeconds,
-} from "../src/lib/typed-reveal";
+} from "@/lib/typed-reveal";
 
 test("a line that gains a name is a naming", () => {
   expect(isNaming(undefined, "Travel receipt rules")).toBe(true);

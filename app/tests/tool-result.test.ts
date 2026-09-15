@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HANDED_OVER, PUT_TO } from "../src/lib/copilot/markers";
-import {
-  asText,
-  forDisplay,
-  saidItWentAhead,
-} from "../src/lib/plugins/tool-result";
+import { HANDED_OVER, PUT_TO } from "@/lib/copilot/markers";
+import { asText, forDisplay, saidItWentAhead } from "@/lib/plugins/tool-result";
 
 /**
  * What a tool actually said, recovered from how the transcript carries it.

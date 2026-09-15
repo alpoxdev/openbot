@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { silenceOf } from "../src/lib/audit/silence";
+import { silenceOf } from "@/lib/audit/silence";
 
 /**
  * The line that tells a stalled-turn row apart from every other stalled-turn row.

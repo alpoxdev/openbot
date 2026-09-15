@@ -35,7 +35,7 @@ import { stoppedReason } from "@/lib/copilot/stopped-turn";
 import { readThreadMessages } from "@/lib/copilot/thread-messages";
 import { useSkillCommands } from "@/lib/plugins/skill-commands";
 import { queryClient } from "@/query-client";
-import { newId } from "../../lib/new-id";
+import { newId } from "@/lib/new-id";
 
 /**
  * How long a stalled thread join is worth waiting for before it is ended.

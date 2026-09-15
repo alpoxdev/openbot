@@ -6,7 +6,7 @@ import {
   requestHostFolderGrantMutationOptions,
   revokeHostFolderGrantMutationOptions,
   stopHostAccessMutationOptions,
-} from "../src/lib/computers/host-access";
+} from "@/lib/computers/host-access";
 
 const realFetch = globalThis.fetch;
 

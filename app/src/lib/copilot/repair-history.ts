@@ -1,5 +1,5 @@
 import type { Message } from "@ag-ui/core";
-import { newId } from "../new-id";
+import { newId } from "@/lib/new-id";
 
 /**
  * Insert explanatory tool results for unanswered tool calls before sending history to providers.

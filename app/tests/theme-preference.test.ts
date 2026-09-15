@@ -10,7 +10,7 @@ import {
   resolveStoredThemePreference,
   THEME_STORAGE_KEY,
   type ThemePreference,
-} from "../src/lib/theme";
+} from "@/lib/theme";
 
 describe("theme preference parsing", () => {
   test("only the three known values are preferences", () => {

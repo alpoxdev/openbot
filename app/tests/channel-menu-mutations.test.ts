@@ -4,8 +4,8 @@ import {
   deleteChannelMutationOptions,
   markChannelReadMutationOptions,
   setChannelPinnedMutationOptions,
-} from "../src/lib/channels/mutations";
-import { type ChannelPage, channelKeys } from "../src/lib/channels/queries";
+} from "@/lib/channels/mutations";
+import { type ChannelPage, channelKeys } from "@/lib/channels/queries";
 
 const realFetch = globalThis.fetch;
 

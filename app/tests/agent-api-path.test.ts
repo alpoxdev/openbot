@@ -13,12 +13,12 @@ import {
   revokeCallbackTokenMutationOptions,
   setAgentHiddenMutationOptions,
   updateAgentMutationOptions,
-} from "../src/lib/agents/mutations";
+} from "@/lib/agents/mutations";
 import {
   agentHandoffQueryOptions,
   agentKeys,
   agentQueryOptions,
-} from "../src/lib/agents/queries";
+} from "@/lib/agents/queries";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {

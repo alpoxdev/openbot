@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { handoffRoster } from "../src/lib/agents/handoff-roster";
+import { handoffRoster } from "@/lib/agents/handoff-roster";
 
 /**
  * Which coworkers the handoff panel draws a switch for.

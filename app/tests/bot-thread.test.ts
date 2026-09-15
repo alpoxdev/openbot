@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { botThreadKey, threadToUse } from "../src/lib/copilot/bot-thread";
+import { botThreadKey, threadToUse } from "@/lib/copilot/bot-thread";
 
 /**
  * The two decisions `useBotThread` makes that do not need a browser to test: which localStorage

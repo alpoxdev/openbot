@@ -3,7 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import {
   grantPlugin,
   setPluginGrantMutationOptions,
-} from "../src/lib/plugins/mutations";
+} from "@/lib/plugins/mutations";
 
 /**
  * Granting a batch of tools, and what a batch is allowed to cost.

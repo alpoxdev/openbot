@@ -9,11 +9,11 @@ import {
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { cleanup, render } from "@testing-library/react";
 import { createElement, useEffect, useState } from "react";
-import { channelHistoryNotice } from "../src/components/channels/channel-chat";
+import { channelHistoryNotice } from "@/components/channels/channel-chat";
 import {
   readThreadMessages,
   type StoredThread,
-} from "../src/lib/copilot/thread-messages";
+} from "@/lib/copilot/thread-messages";
 
 function HistoryNoticeProbe({
   lastMessageAt,

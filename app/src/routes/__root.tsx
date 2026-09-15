@@ -6,7 +6,7 @@ import {
 import { useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { RouterContext } from "../router-context";
+import type { RouterContext } from "@/router-context";
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,

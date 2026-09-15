@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import {
   hasUnseenActivity,
   isUnread,
-} from "../src/components/app-sidebar/app-sidebar";
-import type { ChannelSummary } from "../src/lib/channels/queries";
+} from "@/components/app-sidebar/app-sidebar";
+import type { ChannelSummary } from "@/lib/channels/queries";
 
 /** A minimal but fully-typed summary, so tests build real objects rather than casts. */
 function channel(overrides: Partial<ChannelSummary>): ChannelSummary {

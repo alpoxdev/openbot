@@ -12,7 +12,7 @@ import {
   readScreenshot,
   type Screenshot,
 } from "@/lib/computers/screen";
-import { ChannelAvatar } from "../channels/avatar";
+import { ChannelAvatar } from "@/components/channels/avatar";
 import { LiveScreen } from "./live-screen";
 
 /** Explicit blank-browser URLs use placeholder artwork; missing URL fields are treated as real pages. */

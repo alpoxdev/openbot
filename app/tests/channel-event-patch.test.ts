@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { ChannelPage, ChannelSummary } from "../src/lib/channels/queries";
+import type { ChannelPage, ChannelSummary } from "@/lib/channels/queries";
 import {
   applyChannelEvent,
   type ChannelActivityEvent,
-} from "../src/lib/channels/use-channel-events";
+} from "@/lib/channels/use-channel-events";
 
 /** A minimal but fully-typed channel summary, so tests build real objects rather than casts. */
 function channel(

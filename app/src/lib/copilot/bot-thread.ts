@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tryClient } from "@/lib/client";
-import { newId } from "../new-id";
+import { newId } from "@/lib/new-id";
 
 /**
  * The thread the direct Bot chat talks in.

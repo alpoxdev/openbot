@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { declaredBotId } from "../src/lib/copilot/active-bot";
+import { declaredBotId } from "@/lib/copilot/active-bot";
 
 /**
  * The placeholder Bot id is a routing convenience, not a Bot. Anything that would ask the server

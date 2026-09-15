@@ -4,7 +4,7 @@ import {
   canSend,
   MAX_RECIPIENTS,
   removeRecipient,
-} from "../src/components/channels/compose-state";
+} from "@/components/channels/compose-state";
 
 const KNOWLEDGE = { id: "knowledge", name: "Knowledge" };
 const RISK = { id: "risk-analyst", name: "Risk Analyst" };

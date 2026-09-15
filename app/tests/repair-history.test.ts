@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Message } from "@ag-ui/core";
-import { repairUnansweredToolCalls } from "../src/lib/copilot/repair-history";
+import { repairUnansweredToolCalls } from "@/lib/copilot/repair-history";
 
 /**
  * A stored thread must remain provider-valid even when a tool call lost its result.

@@ -4,7 +4,7 @@ import {
   eventTypeFilter,
   outcomeOf,
   REFUSED_EVENT_TYPES,
-} from "../src/lib/audit/outcome";
+} from "@/lib/audit/outcome";
 
 /**
  * What the audit page says about a row, which for a refusal has exactly one wrong answer.

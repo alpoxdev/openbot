@@ -9,7 +9,7 @@ import {
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { act, cleanup, render } from "@testing-library/react";
 import { StrictMode, type ReactNode } from "react";
-import { LEGACY_THEME_STORAGE_KEY, THEME_STORAGE_KEY } from "../src/lib/theme";
+import { LEGACY_THEME_STORAGE_KEY, THEME_STORAGE_KEY } from "@/lib/theme";
 
 /*
  * These tests install matchMedia after happy-dom registration so the provider sees the fake. They
@@ -64,7 +64,7 @@ function installMatchMedia(initial: boolean): Fake {
 }
 
 async function renderProvider(children: ReactNode = null) {
-  const { ThemeProvider } = await import("../src/components/theme-provider");
+  const { ThemeProvider } = await import("@/components/theme-provider");
   return render(
     <StrictMode>
       <ThemeProvider>{children}</ThemeProvider>

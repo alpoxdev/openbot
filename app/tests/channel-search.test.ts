@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { matchingChannels } from "../src/components/app-sidebar/app-sidebar";
-import type { ChannelSummary } from "../src/lib/channels/queries";
+import { matchingChannels } from "@/components/app-sidebar/app-sidebar";
+import type { ChannelSummary } from "@/lib/channels/queries";
 
 /** A roster row as the search box sees it. */
 function channel(overrides: Partial<ChannelSummary>): ChannelSummary {

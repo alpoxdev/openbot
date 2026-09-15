@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { newId } from "../src/lib/new-id";
+import { newId } from "@/lib/new-id";
 
 /**
  * The identifiers a surface mints, on an origin that is not a secure context.

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseStoredThemePreference } from "../src/lib/theme";
+import { parseStoredThemePreference } from "@/lib/theme";
 
 const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const srcRoot = join(appRoot, "src");

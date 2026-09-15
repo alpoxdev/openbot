@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { frameFiring } from "../../shared/routine-firing";
-import { isPersonSentMessage } from "../src/components/channels/chat-transcript";
+import { isPersonSentMessage } from "@/components/channels/chat-transcript";
 
 /**
  * A routine firing is persisted with `role: "user"`, which is right for the model — it is the turn's

@@ -5,7 +5,7 @@ import {
   stashFirstMessage,
   takeFirstMessage,
   transcriptMessages,
-} from "../src/components/channels/transcript-messages";
+} from "@/components/channels/transcript-messages";
 
 /**
  * Brand-new channel transcript seeding: show the optimistic message until stored messages arrive.

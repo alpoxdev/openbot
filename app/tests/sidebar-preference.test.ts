@@ -3,7 +3,7 @@ import {
   applySidebarOpen,
   parseStoredSidebarOpen,
   SIDEBAR_STORAGE_KEY,
-} from "../src/lib/sidebar";
+} from "@/lib/sidebar";
 
 describe("sidebar preference", () => {
   test("only the stored collapsed value starts the sidebar closed", () => {

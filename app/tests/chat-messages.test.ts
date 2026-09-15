@@ -1,6 +1,6 @@
 import type { Message, ToolCall } from "@ag-ui/core";
 import { describe, expect, test } from "bun:test";
-import { toVisibleChatItems } from "../src/components/channels/chat-messages";
+import { toVisibleChatItems } from "@/components/channels/chat-messages";
 
 /**
  * What a channel transcript shows, out of the messages a run produced.

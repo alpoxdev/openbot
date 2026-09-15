@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readToolName } from "../src/lib/plugins/tool-name";
+import { readToolName } from "@/lib/plugins/tool-name";
 
 /**
  * What the person watching is told a Bot just did.

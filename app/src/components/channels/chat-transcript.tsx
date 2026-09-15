@@ -57,7 +57,7 @@ import {
   toVisibleChatItems,
   type VisibleChatItem,
 } from "./chat-messages";
-import type { QueuedMessage } from "./composer";
+import type { QueuedMessage } from "@/components/channels/composer";
 import { ToolRenderBoundary } from "./tool-boundary";
 import { ToolLine } from "./tool-line";
 

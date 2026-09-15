@@ -3,7 +3,7 @@ import {
   isChannelSocketMessage,
   isResync,
   parseChannelSocketMessage,
-} from "../src/lib/channels/use-channel-events";
+} from "@/lib/channels/use-channel-events";
 
 const activity = {
   channelId: "a",

@@ -27,7 +27,7 @@ import {
   setChannelPinnedMutationOptions,
 } from "@/lib/channels/mutations";
 import { useTypedReveal } from "@/lib/typed-reveal";
-import { ChannelAvatar } from "../channels/avatar";
+import { ChannelAvatar } from "@/components/channels/avatar";
 
 /**
  * Memoized roster row. `use-channel-events` preserves unchanged row identity, and

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { documentChipKind } from "../src/lib/markdown";
+import { documentChipKind } from "@/lib/markdown";
 
 /**
  * Which links get drawn as a document chip.

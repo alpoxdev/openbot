@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { pinnedFirst } from "../src/components/app-sidebar/app-sidebar";
-import type { ChannelSummary } from "../src/lib/channels/queries";
+import { pinnedFirst } from "@/components/app-sidebar/app-sidebar";
+import type { ChannelSummary } from "@/lib/channels/queries";
 
 /** A minimal but fully-typed channel summary, so tests build real objects rather than casts. */
 function channel(

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   parseJsonObject,
   validatePlaygroundDraft,
-} from "../src/routes/_authed/admin/playground";
+} from "@/routes/_authed/admin/playground";
 
 const draft = {
   slug: "s8_visual_check",

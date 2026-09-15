@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   readableTurns,
   readThreadMessages,
-} from "../src/lib/copilot/thread-messages";
+} from "@/lib/copilot/thread-messages";
 
 /**
  * Reading back a conversation that used a tool.

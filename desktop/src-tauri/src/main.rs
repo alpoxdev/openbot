@@ -11,7 +11,7 @@ mod desktop_telemetry;
 mod test_support;
 
 use openbot_desktop_lib::{
-    acquire, deployment, engine, env as openbot_env, harness, host_access, install,
+    acquire, connection, deployment, engine, env as openbot_env, harness, host_access, install,
     problem::Problem, provider, quiet, stack, supervise, telemetry, tray, windows as win,
 };
 #[cfg(not(dev))]
@@ -58,11 +58,6 @@ struct Shell {
     containers: Mutex<Option<ContainerDeployment>>,
     /// A verified down allows a following Stop/Quit to be an idempotent no-op.
     stopped_container_root: Mutex<Option<PathBuf>>,
-    /// An Intelligence sign-in waiting for its loopback callback.
-    signing_in_to_intelligence:
-        Mutex<Option<openbot_desktop_lib::intelligence::SigningInToIntelligence>>,
-    /// The credential that sign-in produced, held so a project can be chosen with it.
-    intelligence_credential: Mutex<Option<String>>,
     /// A ChatGPT sign-in waiting for the browser redirect to complete it.
     ///
     /// Held for the same reason the Claude one is: a person leaves and comes back in the middle.
@@ -77,6 +72,8 @@ struct Shell {
     /// The configured setup destination, resolved using Tauri's build mode and platform.
     /// WebView2's current URL can still be about:blank during startup; it is never a setup source.
     setup_url: Mutex<Option<String>>,
+    /// App-local data directory, where connection mode lives next to telemetry.
+    data_dir: Mutex<Option<PathBuf>>,
 }
 
 /// The deployment whose Compose up may have created containers, including a partial failure.
@@ -204,7 +201,6 @@ struct SavedModelSessions {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SavedConfiguration {
-    intelligence_api_key: Option<bool>,
     model_api_keys: SavedModelApiKeys,
     model_sessions: SavedModelSessions,
     model: Option<openbot_desktop_lib::saved_intent::ModelIntent>,
@@ -351,12 +347,76 @@ fn windows_blocker<R: tauri::Runtime>(
 fn record_setup_event<R: tauri::Runtime>(app: tauri::AppHandle<R>, event: serde_json::Value) {
     if let Ok(
         event @ (telemetry::EventData::StepViewed { .. }
+        | telemetry::EventData::ConnectionChosen { .. }
         | telemetry::EventData::HarnessChosen { .. }
         | telemetry::EventData::ModelChosen { .. }),
     ) = serde_json::from_value(event)
     {
         desktop_telemetry::record(&app, event);
     }
+}
+
+fn connection_data_dir<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<PathBuf, Problem> {
+    if let Some(dir) = app.state::<Shell>().data_dir.lock().unwrap().clone() {
+        return Ok(dir);
+    }
+    let dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| Problem::plain("OpenBot could not find where to save this choice."))?;
+    Ok(dir)
+}
+
+#[tauri::command]
+fn connection_mode<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> connection::ConnectionMode {
+    connection_data_dir(&app)
+        .map(|dir| connection::read(&dir))
+        .unwrap_or(connection::ConnectionMode::Unset)
+}
+
+#[tauri::command]
+fn remember_local_connection<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), Problem> {
+    connection::write_local(&connection_data_dir(&app)?)
+}
+
+#[tauri::command]
+fn clear_connection_mode<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), Problem> {
+    connection::clear(&connection_data_dir(&app)?)
+}
+
+#[tauri::command]
+fn open_remote_openbot<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    url: String,
+) -> Result<(), Problem> {
+    let dir = connection_data_dir(&app)?;
+    let saved = connection::write_remote(&dir, &url)?;
+    navigate_remote(&app, &saved)
+}
+
+fn navigate_remote<R: tauri::Runtime>(app: &tauri::AppHandle<R>, url: &str) -> Result<(), Problem> {
+    let parsed = url
+        .parse()
+        .map_err(|_| Problem::plain("That OpenBot address could not be opened."))?;
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| Problem::plain("the OpenBot window is not there"))?;
+    window.navigate(parsed).map_err(|error| {
+        Problem::with(
+            "OpenBot could not open that address in this window.",
+            error.to_string(),
+        )
+    })
+}
+
+fn maybe_open_saved_remote<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    let Ok(dir) = connection_data_dir(app) else {
+        return;
+    };
+    let Some(url) = connection::saved_remote_url(&dir) else {
+        return;
+    };
+    let _ = navigate_remote(app, &url);
 }
 
 #[tauri::command]
@@ -766,22 +826,6 @@ fn saved_secret(root: &Path, key: &str) -> Result<String, Problem> {
         .map(|found| found.get(key).cloned().unwrap_or_default())
 }
 
-fn intelligence_key_for_start(
-    root: &Path,
-    given: String,
-    mut resolve: impl FnMut(&Path, &str) -> Result<String, Problem>,
-) -> Result<String, Problem> {
-    let key = if given.trim().is_empty() {
-        resolve(root, "INTELLIGENCE_API_KEY")?
-    } else {
-        given
-    };
-    if key.trim().is_empty() {
-        return Err("That saved CopilotKit connection is no longer available. Sign in again or enter a project key.".into());
-    }
-    Ok(key)
-}
-
 fn require_existing_encryption_key(
     root: &Path,
     secrets: &std::collections::BTreeMap<String, String>,
@@ -808,9 +852,6 @@ fn require_existing_encryption_key(
 async fn start_stack<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     root: String,
-    api_url: String,
-    gateway_ws_url: String,
-    api_key: String,
     model: ChosenModel,
     // The row the person picked, with the address only for the bring-your-own row.
     harness: Option<harness::HarnessChoice>,
@@ -818,15 +859,12 @@ async fn start_stack<R: tauri::Runtime>(
     // converts to the plain half, so a path without its own sentence reads as it always did.
 ) -> Result<(), openbot_desktop_lib::problem::Problem> {
     let root = stack::root_from(&root);
-    start_stack_inner(app, root, api_url, gateway_ws_url, api_key, model, harness).await
+    start_stack_inner(app, root, model, harness).await
 }
 
 async fn start_stack_inner<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     root: PathBuf,
-    api_url: String,
-    gateway_ws_url: String,
-    api_key: String,
     model: ChosenModel,
     harness: Option<harness::HarnessChoice>,
 ) -> Result<(), Problem> {
@@ -942,7 +980,6 @@ async fn start_stack_inner<R: tauri::Runtime>(
             return Err(problem.into());
         }
 
-        let api_key = intelligence_key_for_start(&root, api_key, saved_secret)?;
         let existing_secrets = openbot_desktop_lib::vault::already_given_no_ui(
             &root,
             &root.join(".env"),
@@ -951,11 +988,6 @@ async fn start_stack_inner<R: tauri::Runtime>(
         require_existing_encryption_key(&root, &existing_secrets)?;
 
         let settings = openbot_env::compose(
-            &openbot_env::Intelligence {
-                api_url,
-                gateway_ws_url,
-                api_key,
-            },
             &openbot_env::Model {
                 credential: credential.clone(),
             },
@@ -2311,16 +2343,9 @@ fn already_configured(root: String) -> AlreadyConfigured {
     let mut values = openbot_desktop_lib::vault::already_given_file_only(
         &env_file,
         &[
-            "INTELLIGENCE_API_KEY",
-            "INTELLIGENCE_API_URL",
-            "INTELLIGENCE_GATEWAY_WS_URL",
             /*
-             * The model credentials too, so the wizard never asks twice for one of these either.
-             *
-             * A key already in the file is one somebody has already produced, and making them find
-             * it again means opening a dotfile in an editor. Read back for the same reason the
-             * Intelligence key is: it is their own file, on their own machine, and this is the
-             * screen that asks for it.
+             * Model credentials only. Intelligence keys stay in the vault/file but are not
+             * returned to the setup window.
              */
             "OPENAI_API_KEY",
             "ANTHROPIC_API_KEY",
@@ -2339,10 +2364,6 @@ fn already_configured(root: String) -> AlreadyConfigured {
     let claude_plan = values.remove("CLAUDE_CODE_OAUTH_TOKEN").is_some();
     AlreadyConfigured {
         saved: SavedConfiguration {
-            intelligence_api_key: hint(
-                Category::Intelligence,
-                values.contains_key("INTELLIGENCE_API_KEY"),
-            ),
             model_api_keys: SavedModelApiKeys {
                 openai: hint(
                     Category::OpenAiApiKey,
@@ -2517,73 +2538,6 @@ async fn finish_chatgpt_sign_in(app: tauri::AppHandle) -> Result<String, String>
     tauri::async_runtime::spawn_blocking(move || signing.finish())
         .await
         .map_err(|error| format!("The sign-in did not finish: {error}"))?
-}
-
-/// Start signing in to Intelligence and return the address a browser has to open.
-#[tauri::command]
-async fn begin_intelligence_sign_in(app: tauri::AppHandle) -> Result<String, String> {
-    let (signing, url) = openbot_desktop_lib::intelligence::SigningInToIntelligence::begin()?;
-    *app.state::<Shell>()
-        .signing_in_to_intelligence
-        .lock()
-        .unwrap() = Some(signing);
-    let _ = tauri_plugin_opener::OpenerExt::opener(&app).open_url(&url, None::<&str>);
-    Ok(url)
-}
-
-/// Wait for that sign-in, and answer with the projects it can see.
-///
-/// The credential is kept on this side rather than handed to the window: the window's business is
-/// which project, and a credential it never holds is one it cannot leak into a log or a screenshot.
-#[tauri::command]
-async fn finish_intelligence_sign_in(
-    app: tauri::AppHandle,
-) -> Result<Vec<openbot_desktop_lib::intelligence::Project>, openbot_desktop_lib::problem::Problem>
-{
-    let signing = app
-        .state::<Shell>()
-        .signing_in_to_intelligence
-        .lock()
-        .unwrap()
-        .take()
-        .ok_or_else(|| {
-            openbot_desktop_lib::problem::Problem::plain(
-                "That sign-in is no longer running. Start it again.",
-            )
-        })?;
-    let (credential, projects) = tauri::async_runtime::spawn_blocking(move || signing.finish())
-        .await
-        .map_err(|error| {
-            openbot_desktop_lib::problem::Problem::plain(format!(
-                "The sign-in did not finish: {error}"
-            ))
-        })??;
-    *app.state::<Shell>().intelligence_credential.lock().unwrap() = Some(credential);
-    Ok(projects)
-}
-
-/// Create a key for the project somebody chose, and hand it back for the field.
-#[tauri::command]
-async fn intelligence_key_for(
-    app: tauri::AppHandle,
-    project: String,
-) -> Result<String, openbot_desktop_lib::problem::Problem> {
-    let credential = app
-        .state::<Shell>()
-        .intelligence_credential
-        .lock()
-        .unwrap()
-        .clone()
-        .ok_or_else(|| {
-            openbot_desktop_lib::problem::Problem::plain("Sign in to CopilotKit first.")
-        })?;
-    tauri::async_runtime::spawn_blocking(move || {
-        openbot_desktop_lib::intelligence::provision_key(&credential, &project)
-    })
-    .await
-    .map_err(|error| {
-        openbot_desktop_lib::problem::Problem::plain(format!("A key could not be created: {error}"))
-    })?
 }
 
 /// The model screen's rows. Independent of the picker above, and required to stay that way: no
@@ -2795,12 +2749,19 @@ fn restore_window_on<R: tauri::Runtime>(app: &tauri::AppHandle<R>, ports: &openb
     let shell = app.state::<Shell>();
     let _startup = shell.startup.lock().unwrap();
     let root = cleanup_root(&shell, &stack::default_root());
-    // Restore has the same deployment ownership requirement as the setup page's passive probe.
-    // A successful app-port response alone may belong to another installation or application.
-    if let Some(url) = (!recovery_required_or_pending_quit_notice(&shell, &root))
+    if let Some(url) = connection_data_dir(app)
+        .ok()
+        .and_then(|dir| connection::saved_remote_url(&dir))
+    {
+        if let Ok(parsed) = url.parse() {
+            let _ = window.navigate(parsed);
+        }
+    } else if let Some(url) = (!recovery_required_or_pending_quit_notice(&shell, &root))
         .then(|| owned_app_url(&root, ports))
         .flatten()
     {
+        // Restore has the same deployment ownership requirement as the setup page's passive probe.
+        // A successful app-port response alone may belong to another installation or application.
         if let Ok(parsed) = url.parse() {
             let _ = window.navigate(parsed);
         }
@@ -2856,6 +2817,13 @@ fn publish_quit_notice_failure<R: tauri::Runtime>(app: tauri::AppHandle<R>, erro
 
 fn stop_from_menu<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
     std::thread::spawn(move || {
+        if connection_data_dir(&app)
+            .map(|dir| connection::is_remote(&dir))
+            .unwrap_or(false)
+        {
+            let _ = show_setup(app.clone());
+            return;
+        }
         let root = default_root();
         let root_path = PathBuf::from(&root);
         eprintln!("[menu] stopping the stack under {root}");
@@ -2924,6 +2892,10 @@ fn main() {
         .manage(Shell::default())
         .invoke_handler(tauri::generate_handler![
             record_setup_event,
+            connection_mode,
+            remember_local_connection,
+            clear_connection_mode,
+            open_remote_openbot,
             detect_engine,
             windows_blocker,
             windows_blocker_instruction,
@@ -2943,9 +2915,6 @@ fn main() {
             finish_claude_sign_in,
             begin_chatgpt_sign_in,
             finish_chatgpt_sign_in,
-            begin_intelligence_sign_in,
-            finish_intelligence_sign_in,
-            intelligence_key_for,
             ask_the_bot,
         ])
         // A packaged application is not a browser tab. Left alone, WebView2 answers a right-click
@@ -2954,7 +2923,13 @@ fn main() {
         // macOS never showed this because Tauri suppresses it there in release builds; Windows has
         // no such setting, and Tauri has no configuration option for it either, so the page is
         // asked to refuse. Every navigation, because the window navigates to OpenBot and back.
-        .on_page_load(|window, _| {
+        .on_page_load(|window, payload| {
+            let url = payload.url().as_str();
+            if !connection::navigation_allowed(url) {
+                let app = window.app_handle().clone();
+                let _ = show_setup(app);
+                return;
+            }
             let _ = window
                 .eval("document.addEventListener('contextmenu', e => e.preventDefault(), true)");
         })
@@ -2977,6 +2952,10 @@ fn main() {
             )));
 
             remember_setup_url(app.handle())?;
+            if let Ok(dir) = app.handle().path().app_local_data_dir() {
+                *app.state::<Shell>().data_dir.lock().unwrap() = Some(dir);
+            }
+            maybe_open_saved_remote(app.handle());
 
             // The status menu lets somebody open the window, stop the stack, or quit the app.
             use tauri::menu::{Menu, MenuItem};
@@ -3492,7 +3471,8 @@ mod tests {
             for legacy in ["", "INTELLIGENCE_API_KEY=synthetic-cpk\nOPENAI_API_KEY=synthetic-openai\nANTHROPIC_API_KEY=synthetic-anthropic\nCLAUDE_CODE_OAUTH_TOKEN=synthetic-claude\n"] {
                 std::fs::write(root.join(".env"), format!("INTELLIGENCE_API_URL=https://synthetic.example\n{legacy}")).unwrap();
                 let configured = already_configured(root.to_string_lossy().into_owned());
-                assert_eq!(configured.values["INTELLIGENCE_API_URL"], "https://synthetic.example");
+                assert!(!configured.values.contains_key("INTELLIGENCE_API_URL"));
+                assert!(!configured.values.contains_key("INTELLIGENCE_API_KEY"));
                 assert!(!configured.values.contains_key("CLAUDE_CODE_OAUTH_TOKEN"));
             }
         }
@@ -3668,10 +3648,7 @@ mod tests {
         let configured = already_configured(typed);
         let normal = already_configured(root.to_string_lossy().into_owned());
         assert_eq!(configured.values, normal.values);
-        assert_eq!(
-            configured.values.get("INTELLIGENCE_API_URL"),
-            Some(&"https://trim.example.test".to_string())
-        );
+        assert!(!configured.values.contains_key("INTELLIGENCE_API_URL"));
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -3693,19 +3670,38 @@ mod tests {
 
         let configured = already_configured(root.to_string_lossy().into_owned());
 
-        assert_eq!(
-            configured.values.get("INTELLIGENCE_API_KEY"),
-            Some(&"file-cpk".to_string())
-        );
+        assert!(!configured.values.contains_key("INTELLIGENCE_API_KEY"));
         assert_eq!(
             configured.values.get("OPENAI_API_KEY"),
             Some(&"file-openai".to_string())
         );
-        assert_eq!(configured.saved.intelligence_api_key, Some(true));
         assert_eq!(configured.saved.model_api_keys.openai, Some(true));
         assert_eq!(configured.saved.model_sessions.openai, Some(true));
         assert_eq!(configured.saved.model_sessions.anthropic, None);
         let _ = std::fs::remove_dir_all(root);
+    }
+    #[test]
+    fn already_configured_json_omits_intelligence_api_key() {
+        let root = temp_root("openbot-no-intelligence-hint");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(".env"),
+            "INTELLIGENCE_API_KEY=file-cpk\nOPENAI_API_KEY=file-openai\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join(openbot_desktop_lib::saved_intent::FILE),
+            r#"{"version":1,"categories":["intelligence","open-ai-api-key"],"model":"open-ai-api-key"}"#,
+        )
+        .unwrap();
+        let configured = already_configured(root.to_string_lossy().into_owned());
+        let json = serde_json::to_value(&configured).unwrap();
+        assert!(json["saved"].get("intelligenceApiKey").is_none());
+        assert!(!configured.values.contains_key("INTELLIGENCE_API_KEY"));
+        assert_eq!(configured.saved.model_api_keys.openai, Some(true));
+        let leftover = std::fs::read_to_string(root.join(".env")).unwrap();
+        assert!(leftover.contains("INTELLIGENCE_API_KEY=file-cpk"));
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -3772,7 +3768,6 @@ mod tests {
                 std::fs::write(root.join(openbot_desktop_lib::saved_intent::FILE), input).unwrap();
             }
             let unknown = already_configured(root.to_string_lossy().into_owned());
-            assert_eq!(unknown.saved.intelligence_api_key, None);
             assert_eq!(unknown.saved.model_sessions.anthropic, None);
         }
         std::fs::write(
@@ -3781,7 +3776,6 @@ mod tests {
         )
         .unwrap();
         let recorded = already_configured(root.to_string_lossy().into_owned());
-        assert_eq!(recorded.saved.intelligence_api_key, Some(true));
         assert_eq!(recorded.saved.model_sessions.anthropic, Some(true));
         assert_eq!(recorded.saved.model_api_keys.anthropic, None);
         assert_eq!(recorded.saved.model_sessions.openai, None);
@@ -3837,17 +3831,6 @@ mod tests {
                 }
                 assert_eq!(calls, [expected]);
             }
-        }
-        for denied in [false, true] {
-            let result = intelligence_key_for_start(&root, String::new(), |_, key| {
-                assert_eq!(key, "INTELLIGENCE_API_KEY");
-                if denied {
-                    Err(Problem::plain("synthetic access denied"))
-                } else {
-                    Ok(String::new())
-                }
-            });
-            assert!(result.is_err());
         }
         // A missing or unreadable ChatGPT file is an action error; no API-key resolver is called.
         std::fs::create_dir_all(&root).unwrap();
@@ -4165,11 +4148,6 @@ mod tests {
 
     fn persist_endpoint_fixture(root: &Path, credential: &openbot_env::ModelCredential) {
         let settings = openbot_env::compose(
-            &openbot_env::Intelligence {
-                api_url: "https://api.example.test".into(),
-                gateway_ws_url: "wss://api.example.test".into(),
-                api_key: "synthetic-intelligence".into(),
-            },
             &openbot_env::Model {
                 credential: credential.clone(),
             },
@@ -4857,7 +4835,10 @@ mod tests {
                 let path = SerializedPath::set_only_with("docker", "shutdown");
                 // Both engine names stay inside this subprocess's fixture PATH.
                 let source = path.bin().join("container-engine.rs");
-                std::fs::write(&source, r#"
+                let source_code = format!(
+                    "const DEVELOPMENT: bool = {};\n{}",
+                    cfg!(dev),
+                    r#"
 use std::{env,fs,io::Write,path::PathBuf};
 fn main() {
     let original:Vec<String>=env::args().skip(1).collect();
@@ -4889,16 +4870,46 @@ fn main() {
     if words.first()==Some(&"system") { println!("{target}"); return; }
     if words.first()==Some(&"machine") { println!("[]"); return; }
     if !base.join(format!("{engine}-ready")).exists() { eprintln!("synthetic original runtime unavailable"); std::process::exit(74); }
+    let valid_services = |services: &[&str]| matches!(services,
+        ["postgres","supervisor","agent-computer"] |
+        ["postgres","supervisor","agent-computer","agent-bot"] |
+        ["postgres","supervisor","agent-computer","agent-langgraph"] |
+        ["postgres","supervisor","agent-computer","agent-bot","agent-langgraph"] |
+        ["postgres","supervisor","agent-computer","agent-harness"] |
+        ["postgres","supervisor","agent-computer","agent-bot","agent-harness"] |
+        ["postgres","supervisor","agent-computer","agent-langgraph","agent-harness"] |
+        ["postgres","supervisor","agent-computer","agent-bot","agent-langgraph","agent-harness"]
+    );
+    let valid_build_services = |services: &[&str]| matches!(services,
+        ["supervisor","agent-computer","migrate"] |
+        ["supervisor","agent-computer","agent-bot","migrate"] |
+        ["supervisor","agent-computer","agent-langgraph","migrate"] |
+        ["supervisor","agent-computer","agent-bot","agent-langgraph","migrate"]
+    );
     match words.as_slice() {
         ["version","--format",_] => println!("1.44"),
         ["info","--format","{{.Host.ServiceIsRemote}}"] => println!("false"),
         ["compose","version"] => println!("Synthetic Compose"),
         ["compose","ps","--format",_] => (),
-        ["compose","up",..] => {
+        ["compose","build",..] if DEVELOPMENT && valid_build_services(&words[2..]) => (),
+        ["compose","up","-d",mode,..]
+            if ((DEVELOPMENT && *mode == "--build") || (!DEVELOPMENT && *mode == "--no-build"))
+                && valid_services(&words[4..]) => {
             fs::write(cwd.join("fixture-containers-running"),&identity).unwrap();
             if cwd.join("fail-up").exists() { eprintln!("synthetic partial up failure");std::process::exit(71); }
         }
-        ["compose","run","--rm","migrate"] => { eprintln!("synthetic migration barrier");std::process::exit(72); }
+        ["compose","--profile","harness","up","-d",mode,..]
+            if ((DEVELOPMENT && *mode == "--build") || (!DEVELOPMENT && *mode == "--no-build"))
+                && valid_services(&words[6..]) => {
+            fs::write(cwd.join("fixture-containers-running"),&identity).unwrap();
+            if cwd.join("fail-up").exists() { eprintln!("synthetic partial up failure");std::process::exit(71); }
+        }
+        ["compose","run","--rm","--build","migrate"] if DEVELOPMENT => {
+            eprintln!("synthetic migration barrier");std::process::exit(72);
+        }
+        ["compose","run","--rm","migrate"] if !DEVELOPMENT => {
+            eprintln!("synthetic migration barrier");std::process::exit(72);
+        }
         ["compose","-f","docker-compose.yml","config","--format","json"] => println!("{{\"services\":{{\"supervisor\":{{\"environment\":{{\"COMPUTER_NAMESPACE\":\"fixture\"}}}}}}}}"),
         ["compose","-f","docker-compose.yml","stop","supervisor"] => (),
         ["ps","--quiet","--filter",_,"--filter",_] => (),
@@ -4911,7 +4922,9 @@ fn main() {
         _ => { eprintln!("unexpected fixture command: {args:?}");std::process::exit(99); }
     }
 }
-"#).unwrap();
+"#,
+                );
+                std::fs::write(&source, source_code).unwrap();
                 for name in [
                     "DOCKER_CONTEXT",
                     "DOCKER_HOST",
@@ -4974,10 +4987,14 @@ fn main() {
                 } else {
                     serde_json::json!({"provider":"openai","login":"api-key","apiKey":"synthetic-container-root-key"})
                 };
-                let result = self.invoke("start_stack", serde_json::json!({
-                    "root":root,"apiUrl":"https://intelligence.example.test","gatewayWsUrl":"wss://gateway.example.test",
-                    "apiKey":"synthetic-intelligence-key","model":model,"harness":null,
-                })).expect_err("fixture Start must stop before host startup");
+                let result = self
+                    .invoke(
+                        "start_stack",
+                        serde_json::json!({
+                            "root":root,"model":model,"harness":null,
+                        }),
+                    )
+                    .expect_err("fixture Start must stop before host startup");
                 println!(
                     "CONTAINER_START={}",
                     serde_json::json!({"root":root,"problem":result})
@@ -5288,7 +5305,20 @@ fn main() {
             };
             let version = run(&fixture.a, &["--remote=false", "compose", "version"]);
             assert_eq!(version.stdout, b"Synthetic Compose\n");
-            run(&fixture.a, &["--remote=false", "compose", "up", "-d"]);
+            let build_mode = if cfg!(dev) { "--build" } else { "--no-build" };
+            run(
+                &fixture.a,
+                &[
+                    "--remote=false",
+                    "compose",
+                    "up",
+                    "-d",
+                    build_mode,
+                    "postgres",
+                    "supervisor",
+                    "agent-computer",
+                ],
+            );
             assert_eq!(
                 std::fs::read_to_string(fixture.a.join("fixture-containers-running")).unwrap(),
                 "podman:local"
@@ -5298,7 +5328,17 @@ fn main() {
             std::env::set_var("CONTAINER_CONNECTION", "ambient-remote");
             run(
                 &fixture.b,
-                &["--connection", "explicit-remote", "compose", "up", "-d"],
+                &[
+                    "--connection",
+                    "explicit-remote",
+                    "compose",
+                    "up",
+                    "-d",
+                    build_mode,
+                    "postgres",
+                    "supervisor",
+                    "agent-computer",
+                ],
             );
             run(
                 &fixture.a,
@@ -5725,6 +5765,7 @@ fn main() {
         }
         let root = temp_root("openbot-harness-start-ipc");
         write_installed_deployment(&root);
+        write_local_harness_dockerfiles(&root);
         let mut images: deployment::Images =
             serde_json::from_str(&std::fs::read_to_string(deployment::images_path(&root)).unwrap())
                 .unwrap();
@@ -5752,35 +5793,75 @@ fn main() {
             "provider":"openai", "login":"api-key", "apiKey":"synthetic-provider-key"
         });
         let mut choice = serde_json::json!({"id":"byo-url", "agentUrl":remote});
+        let build_flag = if cfg!(dev) { "--build" } else { "--no-build" };
+        let expected_up = |profile: bool, services: &str| {
+            format!(
+                "compose {}up -d {build_flag} {services}",
+                if profile { "--profile harness " } else { "" }
+            )
+        };
         let (expected_up, expected_image) = match case {
             "remote" | "remote-stale-image" => (
-                "compose up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph",
+                expected_up(
+                    false,
+                    "postgres supervisor agent-computer agent-bot agent-langgraph",
+                ),
                 None,
             ),
             "anthropic-api" => {
                 model = serde_json::json!({"provider":"anthropic", "login":"api-key", "apiKey":"synthetic-anthropic-key"});
                 choice = serde_json::json!({"id":"langgraph"});
-                ("compose --profile harness up -d --no-build postgres supervisor agent-computer agent-langgraph agent-harness", Some("agent-langgraph-agui"))
+                (
+                    expected_up(
+                        true,
+                        "postgres supervisor agent-computer agent-langgraph agent-harness",
+                    ),
+                    Some("agent-langgraph-agui"),
+                )
             }
             "compatible" => {
                 model = serde_json::json!({"provider":"openai-compatible", "login":"endpoint", "baseUrl":"http://127.0.0.1:11434/v1", "model":"synthetic-model", "apiKey":""});
-                ("compose up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph", None)
+                (
+                    expected_up(
+                        false,
+                        "postgres supervisor agent-computer agent-bot agent-langgraph",
+                    ),
+                    None,
+                )
             }
             "installed" => {
                 choice = serde_json::json!({"id":"langgraph"});
-                ("compose --profile harness up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph agent-harness", Some("agent-langgraph-agui"))
+                (
+                    expected_up(
+                        true,
+                        "postgres supervisor agent-computer agent-bot agent-langgraph agent-harness",
+                    ),
+                    Some("agent-langgraph-agui"),
+                )
             }
             "none" => {
                 choice = serde_json::Value::Null;
-                ("compose up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph", None)
+                (
+                    expected_up(
+                        false,
+                        "postgres supervisor agent-computer agent-bot agent-langgraph",
+                    ),
+                    None,
+                )
             }
             "chatgpt-plan" => {
                 model = serde_json::json!({"provider":"openai", "login":"plan", "token":"{\"refresh_token\":\"synthetic-plan\"}"});
-                ("compose --profile harness up -d --no-build postgres supervisor agent-computer agent-harness", Some("agent-langgraph-agui"))
+                (
+                    expected_up(true, "postgres supervisor agent-computer agent-harness"),
+                    Some("agent-langgraph-agui"),
+                )
             }
             "claude-plan" => {
                 model = serde_json::json!({"provider":"anthropic", "login":"plan", "token":"synthetic-claude-plan"});
-                ("compose --profile harness up -d --no-build postgres supervisor agent-computer agent-harness", Some("agent-claude-sdk"))
+                (
+                    expected_up(true, "postgres supervisor agent-computer agent-harness"),
+                    Some("agent-claude-sdk"),
+                )
             }
             _ => panic!("unknown test case"),
         };
@@ -5827,10 +5908,13 @@ fn main() {
             )
             .map(|body| body.deserialize::<serde_json::Value>().unwrap())
         };
-        let problem = invoke("start_stack", serde_json::json!({
-            "root":root, "apiUrl":"https://intelligence.example.test", "gatewayWsUrl":"wss://gateway.example.test",
-            "apiKey":"synthetic-intelligence-key", "model":model, "harness":choice,
-        })).expect_err("intentional migration barrier prevents host/DB startup");
+        let problem = invoke(
+            "start_stack",
+            serde_json::json!({
+                "root":root, "model":model, "harness":choice,
+            }),
+        )
+        .expect_err("intentional migration barrier prevents host/DB startup");
         let commands = std::fs::read_to_string(&record).unwrap_or_default();
         assert!(
             problem["detail"]
@@ -5839,19 +5923,40 @@ fn main() {
                 .contains("synthetic migration barrier"),
             "{problem:?} {commands}"
         );
-        let up: Vec<_> = commands
+        let up: Vec<String> = commands
             .lines()
             .filter_map(|line| {
                 let (_, command) = line.split_once('\t')?;
-                command.contains(" up -d ").then_some(command)
+                command.contains(" up -d ").then_some(command.to_string())
             })
             .collect();
         assert_eq!(
             up,
-            vec![expected_up],
+            vec![expected_up.as_str()],
             "case={case}, actual Start IPC commands:\n{commands}"
         );
-        assert!(commands.contains("\tcompose run --rm migrate\n"));
+        let expected_build = match case {
+            "anthropic-api" => "compose build supervisor agent-computer agent-langgraph migrate",
+            "chatgpt-plan" | "claude-plan" => "compose build supervisor agent-computer migrate",
+            _ => "compose build supervisor agent-computer agent-bot agent-langgraph migrate",
+        };
+        if cfg!(dev) {
+            assert!(
+                commands.contains(&format!("\t{expected_build}\n")),
+                "development Start must build its selected local services: {commands}"
+            );
+        } else {
+            assert!(
+                !commands
+                    .lines()
+                    .any(|line| line.contains("\tcompose build ")),
+                "packaged Start must not build from the checkout: {commands}"
+            );
+        }
+        assert!(commands.contains(&format!(
+            "\tcompose run --rm{} migrate\n",
+            if cfg!(dev) { " --build" } else { "" }
+        )));
         assert!(!root.join(".logs").exists(), "no host runtime was launched");
         let settings = openbot_env::read_already_set(
             &root.join(".env"),
@@ -5906,10 +6011,25 @@ fn main() {
                 .any(|line| line.starts_with("x-openbot-agent-token: ")));
             asked = true;
         } else if let Some(image) = expected_image {
-            assert_eq!(
-                settings.get("PICKED_HARNESS_IMAGE"),
-                Some(&format!("localhost/{image}@sha256:00"))
-            );
+            let expected_image = if cfg!(dev) {
+                format!("openbot-{image}:local")
+            } else {
+                format!("localhost/{image}@sha256:00")
+            };
+            if cfg!(dev) {
+                assert!(
+                    commands.lines().any(|line| {
+                        line.contains(&format!("\tbuild --tag {expected_image} --file "))
+                    }),
+                    "development Start must build the selected local harness: {commands}"
+                );
+            } else {
+                assert!(
+                    !commands.lines().any(|line| line.contains("\tbuild --tag ")),
+                    "packaged Start must use its pinned harness image: {commands}"
+                );
+            }
+            assert_eq!(settings.get("PICKED_HARNESS_IMAGE"), Some(&expected_image));
             assert_ne!(settings.get("PICKED_HARNESS_URL"), Some(&remote));
         } else {
             assert!(!settings.contains_key("PICKED_HARNESS_URL"));
@@ -6027,9 +6147,6 @@ fn main() {
         let problem = tauri::async_runtime::block_on(start_stack_inner(
             app.handle().clone(),
             root.clone(),
-            "https://intelligence.example.test".into(),
-            "wss://gateway.example.test".into(),
-            "synthetic-intelligence-key".into(),
             ChosenModel {
                 provider: "openai".into(),
                 login: "api-key".into(),
@@ -6059,9 +6176,18 @@ fn main() {
             "{commands}"
         );
         assert!(commands.contains("\tcompose version\n"), "{commands}");
-        assert!(commands.contains("\tcompose up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph\n"), "{commands}");
+        let up_flag = if cfg!(dev) { "--build" } else { "--no-build" };
         assert!(
-            commands.contains("\tcompose run --rm migrate\n"),
+            commands.contains(&format!(
+                "\tcompose up -d {up_flag} postgres supervisor agent-computer agent-bot agent-langgraph\n"
+            )),
+            "{commands}"
+        );
+        assert!(
+            commands.contains(&format!(
+                "\tcompose run --rm{} migrate\n",
+                if cfg!(dev) { " --build" } else { "" }
+            )),
             "{commands}"
         );
         assert!(
@@ -6105,9 +6231,6 @@ fn main() {
         let problem = tauri::async_runtime::block_on(start_stack_inner(
             app.handle().clone(),
             root.clone(),
-            "https://intelligence.example.test".into(),
-            "wss://gateway.example.test".into(),
-            "synthetic-intelligence-key".into(),
             ChosenModel {
                 provider: "anthropic".into(),
                 login: "api-key".into(),
@@ -6123,15 +6246,17 @@ fn main() {
         .expect_err("dead selected LangGraph service must fail Start");
 
         let commands = std::fs::read_to_string(&record).expect("command record");
+        let up_flag = if cfg!(dev) { "--build" } else { "--no-build" };
         assert!(
-            commands.contains(
-                "\tcompose up -d --no-build postgres supervisor agent-computer agent-langgraph\n"
-            ),
+            commands.contains(&format!(
+                "\tcompose up -d {up_flag} postgres supervisor agent-computer agent-langgraph\n"
+            )),
             "{commands}"
         );
         assert!(
-            !commands
-                .contains("compose up -d --no-build postgres supervisor agent-computer agent-bot"),
+            !commands.contains(&format!(
+                "compose up -d {up_flag} postgres supervisor agent-computer agent-bot"
+            )),
             "Anthropic Start must not target the OpenAI-only agent-bot: {commands}"
         );
         assert_eq!(problem.said, "Part of OpenBot stopped during startup.");
@@ -6346,11 +6471,6 @@ fn main() {
             };
             let compose = |harness| {
                 openbot_env::compose(
-                    &openbot_env::Intelligence {
-                        api_url: "https://intelligence.example.test".into(),
-                        gateway_ws_url: "wss://gateway.example.test".into(),
-                        api_key: String::new(),
-                    },
                     &openbot_env::Model {
                         credential: openbot_env::ModelCredential::OpenAi {
                             api_key: "synthetic-provider-key".into(),
@@ -6674,6 +6794,21 @@ fn main() {
         )
         .unwrap();
         deployment::record(root, DEPLOYMENT_VERSION).unwrap();
+    }
+
+    fn write_local_harness_dockerfiles(root: &Path) {
+        if !cfg!(dev) {
+            return;
+        }
+        for name in ["agent-langgraph-agui", "agent-claude-sdk"] {
+            let directory = root.join(name);
+            std::fs::create_dir_all(&directory).unwrap();
+            std::fs::write(
+                directory.join("Dockerfile"),
+                "# test-only placeholder: the fake engine validates this checkout path.\n",
+            )
+            .unwrap();
+        }
     }
 
     struct TestRequest {
@@ -7031,8 +7166,7 @@ fn main() {
             cmd: "start_stack".into(), callback: tauri::ipc::CallbackFn(0), error: tauri::ipc::CallbackFn(1),
             url: "tauri://localhost".parse().unwrap(),
             body: tauri::ipc::InvokeBody::Json(serde_json::json!({
-                "root": fixture.host.root, "apiUrl": "https://intelligence.example.test",
-                "gatewayWsUrl": "wss://gateway.example.test", "apiKey": "synthetic-unused-key",
+                "root": fixture.host.root,
                 "model": {"provider": "synthetic-invalid-provider", "login": "api-key"}, "harness": null,
             })),
             headers: Default::default(), invoke_key: tauri::test::INVOKE_KEY.into(),
@@ -7419,8 +7553,7 @@ fn main() {
             cmd: "start_stack".into(), callback: tauri::ipc::CallbackFn(0), error: tauri::ipc::CallbackFn(1),
             url: setup.parse().unwrap(),
             body: tauri::ipc::InvokeBody::Json(serde_json::json!({
-                "root": f.owned, "apiUrl": "https://intelligence.example.test",
-                "gatewayWsUrl": "wss://gateway.example.test", "apiKey": "synthetic-unused-key",
+                "root": f.owned,
                 "model": {"provider": "synthetic-invalid-provider", "login": "api-key"}, "harness": null,
             })), headers: Default::default(), invoke_key: tauri::test::INVOKE_KEY.into(),
         }).expect_err("synthetic credential preflight must reject before store access");
@@ -8229,7 +8362,7 @@ fn main() {
                 &source,
                 format!(
                     "const SCENARIO: &str = {scenario:?};\n{}",
-                    include_str!("../tests/fixtures/engine.rs")
+                    fixture_engine_source()
                 ),
             )
             .unwrap();
@@ -8240,6 +8373,91 @@ fn main() {
             });
             crate::test_support::compile_fixture(&source, &binary);
         }
+    }
+
+    fn fixture_engine_source() -> String {
+        const UP_MARKER: &str = r#"        value
+            if value.starts_with("compose up -d --no-build ")
+                || value.starts_with("compose --profile harness up -d --no-build ") => {}"#;
+        const COMPOSE_VERSION_MARKER: &str =
+            r#"        "compose version" => println!("Docker Compose synthetic"),"#;
+        const MIGRATE_MARKER: &str = r#"        "compose run --rm migrate" => {
+            if SCENARIO == "harness" {
+                eprintln!("synthetic migration barrier");
+                std::process::exit(71);
+            }
+        }"#;
+        let up = if cfg!(dev) {
+            r#"        "compose up -d --build postgres supervisor agent-computer"
+        | "compose up -d --build postgres supervisor agent-computer agent-bot"
+        | "compose up -d --build postgres supervisor agent-computer agent-langgraph"
+        | "compose up -d --build postgres supervisor agent-computer agent-bot agent-langgraph"
+        | "compose --profile harness up -d --build postgres supervisor agent-computer agent-harness"
+        | "compose --profile harness up -d --build postgres supervisor agent-computer agent-bot agent-harness"
+        | "compose --profile harness up -d --build postgres supervisor agent-computer agent-langgraph agent-harness"
+        | "compose --profile harness up -d --build postgres supervisor agent-computer agent-bot agent-langgraph agent-harness"
+        => {},"#
+        } else {
+            r#"        "compose up -d --no-build postgres supervisor agent-computer"
+        | "compose up -d --no-build postgres supervisor agent-computer agent-bot"
+        | "compose up -d --no-build postgres supervisor agent-computer agent-langgraph"
+        | "compose up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph"
+        | "compose --profile harness up -d --no-build postgres supervisor agent-computer agent-harness"
+        | "compose --profile harness up -d --no-build postgres supervisor agent-computer agent-bot agent-harness"
+        | "compose --profile harness up -d --no-build postgres supervisor agent-computer agent-langgraph agent-harness"
+        | "compose --profile harness up -d --no-build postgres supervisor agent-computer agent-bot agent-langgraph agent-harness"
+        => {},"#
+        };
+        let build = if cfg!(dev) {
+            r#"        "compose build supervisor agent-computer migrate"
+        | "compose build supervisor agent-computer agent-bot migrate"
+        | "compose build supervisor agent-computer agent-langgraph migrate"
+        | "compose build supervisor agent-computer agent-bot agent-langgraph migrate"
+        => {},"#
+        } else {
+            ""
+        };
+        let direct_build = if cfg!(dev) {
+            r#"        value if {
+            let fields: Vec<&str> = value.split_whitespace().collect();
+            if fields.len() != 6
+                || fields[0] != "build"
+                || fields[1] != "--tag"
+                || fields[3] != "--file"
+                || fields[5] != "."
+            {
+                false
+            } else {
+                let dockerfile = fields[4].replace('\\', "/");
+                match fields[2] {
+                    "openbot-agent-langgraph-agui:local" =>
+                        dockerfile.ends_with("agent-langgraph-agui/Dockerfile"),
+                    "openbot-agent-claude-sdk:local" =>
+                        dockerfile.ends_with("agent-claude-sdk/Dockerfile"),
+                    _ => false,
+                }
+            }
+        } => {},"#
+        } else {
+            ""
+        };
+        let migrate = if cfg!(dev) {
+            r#"        "compose run --rm --build migrate" => {
+            if SCENARIO == "harness" {
+                eprintln!("synthetic migration barrier");
+                std::process::exit(71);
+            }
+        }"#
+        } else {
+            MIGRATE_MARKER
+        };
+        let source = include_str!("../tests/fixtures/engine.rs")
+            .replace(UP_MARKER, up)
+            .replace(MIGRATE_MARKER, migrate);
+        source.replace(
+            COMPOSE_VERSION_MARKER,
+            &format!("{COMPOSE_VERSION_MARKER}\n{build}\n{direct_build}"),
+        )
     }
 
     impl Drop for SerializedPath {
@@ -8416,6 +8634,7 @@ fn main() {
             let shell = Shell::default();
             remember_selected_root(&shell, root);
             *shell.setup_url.lock().unwrap() = Some(setup.into());
+            *shell.data_dir.lock().unwrap() = Some(self.base.join("app-data"));
             let app = tauri::test::mock_builder()
                 .manage(shell)
                 .invoke_handler(tauri::generate_handler![start_stack])
@@ -8688,6 +8907,73 @@ fn main() {
         let destination = app.get_webview_window("main").unwrap().url().unwrap();
         assert!(!initial_adoption && shown.is_err() && destination.as_str() == "tauri://localhost/",
             "owned API must not authorize a foreign app: initial={initial_adoption}, shown={shown:?}, restore={destination}");
+    }
+
+    #[test]
+    fn restore_window_saved_remote_wins_over_owned_local_stack() {
+        let f = RestoreFixture::new();
+        let data = f.base.join("app-data");
+        connection::write_remote(&data, "https://openbot.example.com").unwrap();
+        let app = f.app(&f.owned, "tauri://localhost/");
+        restore_window_on(app.handle(), &f.ports);
+        assert_eq!(
+            app.get_webview_window("main")
+                .unwrap()
+                .url()
+                .unwrap()
+                .as_str(),
+            "https://openbot.example.com/"
+        );
+    }
+
+    #[test]
+    fn stop_from_menu_remote_shows_setup_without_stopping_stack() {
+        let f = RestoreFixture::new();
+        let data = f.base.join("app-data");
+        connection::write_remote(&data, "https://openbot.example.com").unwrap();
+        let app = f.app(&f.owned, "tauri://localhost/");
+        app.get_webview_window("main")
+            .unwrap()
+            .navigate("https://openbot.example.com/".parse().unwrap())
+            .unwrap();
+        stop_from_menu(app.handle().clone());
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while std::time::Instant::now() < deadline {
+            if app
+                .get_webview_window("main")
+                .unwrap()
+                .url()
+                .unwrap()
+                .as_str()
+                == "tauri://localhost/"
+            {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        assert_eq!(
+            app.get_webview_window("main")
+                .unwrap()
+                .url()
+                .unwrap()
+                .as_str(),
+            "tauri://localhost/"
+        );
+        restore_window_on(app.handle(), &f.ports);
+        assert_eq!(
+            app.get_webview_window("main")
+                .unwrap()
+                .url()
+                .unwrap()
+                .as_str(),
+            "https://openbot.example.com/"
+        );
+    }
+
+    #[test]
+    fn javascript_remote_url_is_refused_before_navigate() {
+        assert!(connection::openbot_site_url("javascript:alert(1)").is_err());
+        assert!(connection::openbot_site_url("https://openbot.example.com").is_ok());
     }
 
     #[test]

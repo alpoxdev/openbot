@@ -38,7 +38,6 @@ export type SavedConfiguration = {
     | "chat-gpt-plan"
     | "compatible-endpoint"
     | null;
-  intelligenceApiKey?: boolean | null;
   modelApiKeys?: Partial<
     Record<"openai" | "anthropic" | "compatible", boolean | null>
   >;
@@ -46,9 +45,6 @@ export type SavedConfiguration = {
 };
 
 export type HeldConfiguration = {
-  INTELLIGENCE_API_KEY?: string;
-  INTELLIGENCE_API_URL?: string;
-  INTELLIGENCE_GATEWAY_WS_URL?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   OPENAI_BASE_URL?: string;

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "app-automation-transcript",
+  "surface": "desktop",
+  "tool": "happy-dom",
+  "actions": [
+    {
+      "type": "open",
+      "timestamp": "2026-09-15T00:00:00.000Z",
+      "tool": "happy-dom",
+      "selector": "main"
+    },
+    {
+      "type": "click",
+      "timestamp": "2026-09-15T00:00:01.000Z",
+      "tool": "happy-dom",
+      "selector": "button"
+    },
+    {
+      "type": "observe",
+      "timestamp": "2026-09-15T00:00:02.000Z",
+      "tool": "happy-dom",
+      "selector": "h1"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T00:00:03.000Z",
+      "tool": "happy-dom",
+      "selector": "main",
+      "path": "artifacts/g001-connection/live-desktop.png"
+    }
+  ],
+  "verdict": "passed"
+}

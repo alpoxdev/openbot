@@ -594,6 +594,14 @@ mod tests {
         }
     }
 
+    fn expected_crewai_image() -> &'static str {
+        if cfg!(dev) {
+            "openbot-agent-crewai:local"
+        } else {
+            "ghcr.io/alpoxdev/openbot-agent-crewai@sha256:abc"
+        }
+    }
+
     #[test]
     fn start_fetches_deployment_before_resolving_a_selected_harness_image() {
         let root = scratch("fetch-before-pick");
@@ -617,7 +625,7 @@ mod tests {
         let crate::env::PickedHarness::Installed { image, .. } = picked else {
             panic!("crewai should install a harness image");
         };
-        assert_eq!(image, "ghcr.io/alpoxdev/openbot-agent-crewai@sha256:abc");
+        assert_eq!(image, expected_crewai_image());
         let _ = std::fs::remove_dir_all(&root);
     }
 
@@ -702,11 +710,6 @@ mod tests {
             .expect("BYO endpoint should be valid")
             .expect("BYO endpoint should register a harness");
         let env = crate::env::compose(
-            &crate::env::Intelligence {
-                api_url: "https://api.example".into(),
-                gateway_ws_url: "wss://realtime.example".into(),
-                api_key: "key".into(),
-            },
             &crate::env::Model::default(),
             &crate::engine::EngineStatus {
                 engine: None,
@@ -752,7 +755,7 @@ mod tests {
         else {
             panic!("crewai should install a harness image");
         };
-        assert_eq!(image, "ghcr.io/alpoxdev/openbot-agent-crewai@sha256:abc");
+        assert_eq!(image, expected_crewai_image());
         assert_eq!(port, 4202);
         assert!(!mastra);
         assert!(remote_agent_id.is_empty());
@@ -814,7 +817,7 @@ mod tests {
     /// reads as a credentials problem and sends somebody to fix permissions on a repository that
     /// does not exist.
     #[test]
-    fn a_bot_this_release_does_not_publish_is_named_rather_than_pulled() {
+    fn missing_release_images_are_refused_outside_development() {
         let root = temp_root("empty");
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(
@@ -823,10 +826,20 @@ mod tests {
         )
         .unwrap();
 
-        let refused = picked(Some(&choice("crewai")), &root).expect_err("it should be refused");
-        assert!(refused.contains("agent-crewai"), "{refused}");
-        assert!(refused.contains("v1.2.3"), "{refused}");
-        assert!(!refused.contains("denied"), "{refused}");
+        if cfg!(dev) {
+            let resolved = picked(Some(&choice("crewai")), &root)
+                .expect("development uses locally built images")
+                .expect("crewai is installable");
+            let crate::env::PickedHarness::Installed { image, .. } = resolved else {
+                panic!("crewai should install a harness image");
+            };
+            assert_eq!(image, "openbot-agent-crewai:local");
+        } else {
+            let refused = picked(Some(&choice("crewai")), &root).expect_err("it should be refused");
+            assert!(refused.contains("agent-crewai"), "{refused}");
+            assert!(refused.contains("v1.2.3"), "{refused}");
+            assert!(!refused.contains("denied"), "{refused}");
+        }
         let _ = std::fs::remove_dir_all(&root);
     }
 
@@ -853,15 +866,22 @@ mod tests {
             let crate::env::PickedHarness::Installed { image, .. } = resolved else {
                 panic!("{} should install a harness image", row.id);
             };
-            let host = image
-                .split('/')
-                .next()
-                .expect("a reference has at least one segment");
-            assert!(
-                host.contains('.'),
-                "{} resolved to {image}, which every engine looks up on Docker Hub",
-                row.id
-            );
+            if cfg!(dev) {
+                assert_eq!(
+                    image,
+                    format!("openbot-{}:local", row.image.expect("installable image"))
+                );
+            } else {
+                let host = image
+                    .split('/')
+                    .next()
+                    .expect("a reference has at least one segment");
+                assert!(
+                    host.contains('.'),
+                    "{} resolved to {image}, which every engine looks up on Docker Hub",
+                    row.id
+                );
+            }
             assert!(
                 image.contains("@sha256:") || image.contains(':'),
                 "{} resolved to {image}, which an engine reads as :latest",

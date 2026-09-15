@@ -840,6 +840,7 @@ fn write_host_pid_file<T: Serialize>(root: &Path, value: &T) -> Result<(), Probl
 /// reach the worker running model tools or the frontend development server.
 fn configure_host_process_env(command: &mut Command, name: &str, secrets: &Secrets) {
     command.envs(secrets);
+    command.env_remove("INTELLIGENCE_API_KEY");
     if name != "server" {
         command.env_remove("OPENBOT_DESKTOP_HOST_TOKEN");
     }
@@ -2719,8 +2720,11 @@ mod tests {
                 "approval credential exposure to {name}"
             );
             assert_eq!(
-                vars[std::ffi::OsStr::new("INTELLIGENCE_API_KEY")],
-                Some(std::ffi::OsStr::new("other-fixture"))
+                vars.get(std::ffi::OsStr::new("INTELLIGENCE_API_KEY"))
+                    .copied()
+                    .flatten(),
+                None,
+                "source key must not reach {name}"
             );
         }
     }
@@ -5892,8 +5896,8 @@ fn main() {
     #[test]
     fn a_deployment_directory_pasted_with_a_stray_space_is_the_one_it_names() {
         // The fifth value on the setup screen that trimming missed. The screen enables Start on
-        // `root.trim() !== ""` and then sends the untrimmed string, which is exactly what the API
-        // URL, the gateway URL, the intelligence key and the model key were rescued from.
+        // `root.trim() !== ""` and then sends the untrimmed string, which is exactly what the
+        // model key was rescued from.
         //
         // A trailing space is a second directory beside the one everything else means: the tray's
         // Stop and the next launch both ask `default_root`, which has no space in it. A leading one

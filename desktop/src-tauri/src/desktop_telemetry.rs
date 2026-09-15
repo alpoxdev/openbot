@@ -292,14 +292,23 @@ mod tests {
 
         fixture.invoke(serde_json::json!({
             "kind": "step_viewed",
-            "step": "harness"
+            "step": "connect"
+        }));
+        fixture.invoke(serde_json::json!({
+            "kind": "connection_chosen",
+            "connection": "remote"
         }));
         fixture.invoke(serde_json::json!({
             "kind": "harness_chosen",
             "harness": "byo_url"
         }));
-        assert_eq!(fixture.queued().len(), 2);
+        assert_eq!(fixture.queued().len(), 3);
 
+        fixture.invoke(serde_json::json!({
+            "kind": "connection_chosen",
+            "connection": "remote",
+            "url": "https://example.invalid"
+        }));
         fixture.invoke(serde_json::json!({
             "kind": "harness_chosen",
             "harness": "byo_url",
@@ -314,15 +323,21 @@ mod tests {
         }));
 
         let queued = fixture.queued();
-        assert_eq!(queued.len(), 2);
+        assert_eq!(queued.len(), 3);
         assert!(matches!(
             queued[0],
             telemetry::EventData::StepViewed {
-                step: telemetry::Step::Harness
+                step: telemetry::Step::Connect
             }
         ));
         assert!(matches!(
             queued[1],
+            telemetry::EventData::ConnectionChosen {
+                connection: telemetry::ConnectionChoice::Remote
+            }
+        ));
+        assert!(matches!(
+            queued[2],
             telemetry::EventData::HarnessChosen {
                 harness: telemetry::Harness::ByoUrl
             }

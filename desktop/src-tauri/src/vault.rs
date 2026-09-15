@@ -105,6 +105,11 @@ pub(crate) fn remember_all_with(
     forget_one: &mut impl FnMut(&Path, &str) -> Result<(), Problem>,
 ) -> Result<(), Problem> {
     for (key, value) in secrets {
+        // An old CopilotKit project key is not a Start input. Empty compose output must not
+        // wipe or rotate the stored bytes; only an explicit non-empty value may rewrite them.
+        if key == "INTELLIGENCE_API_KEY" && value.trim().is_empty() {
+            continue;
+        }
         if value.trim().is_empty() {
             forget_one(root, key)?;
             continue;
@@ -1730,6 +1735,35 @@ SOMETHING_ELSE=kept\n",
             assert_eq!(read, value);
         }
         forget(&root, name).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn an_empty_intelligence_value_does_not_forget_or_replace_stored_bytes() {
+        let root = temp_root("preserve-intelligence-vault");
+        std::fs::create_dir_all(&root).unwrap();
+        remember(&root, "INTELLIGENCE_API_KEY", "synthetic-intelligence").unwrap();
+        let mut remembered = Vec::new();
+        let mut forgotten = Vec::new();
+        remember_all_with(
+            &root,
+            &BTreeMap::from([("INTELLIGENCE_API_KEY".into(), String::new())]),
+            &mut |_, key, value| {
+                remembered.push((key.to_string(), value.to_string()));
+                Ok(())
+            },
+            &mut |_, key| {
+                forgotten.push(key.to_string());
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(remembered.is_empty());
+        assert!(forgotten.is_empty());
+        assert_eq!(
+            recall(&root, "INTELLIGENCE_API_KEY").unwrap().as_deref(),
+            Some("synthetic-intelligence")
+        );
+        forget(&root, "INTELLIGENCE_API_KEY").unwrap();
         std::fs::remove_dir_all(root).unwrap();
     }
 }

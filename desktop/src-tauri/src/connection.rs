@@ -28,11 +28,7 @@ pub enum Mode {
 pub struct Record {
     version: u8,
     mode: Mode,
-    #[serde(
-        default,
-        rename = "remoteUrl",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(default, rename = "remoteUrl", skip_serializing_if = "Option::is_none")]
     remote_url: Option<String>,
 }
 
@@ -41,7 +37,10 @@ pub struct Record {
 pub enum ConnectionMode {
     Unset,
     Local,
-    Remote { #[serde(rename = "remoteUrl")] remote_url: String },
+    Remote {
+        #[serde(rename = "remoteUrl")]
+        remote_url: String,
+    },
 }
 
 pub fn store_path(data_dir: &Path) -> PathBuf {
@@ -94,9 +93,8 @@ pub fn write_remote(data_dir: &Path, url: &str) -> Result<String, Problem> {
 pub fn clear(data_dir: &Path) -> Result<(), Problem> {
     let path = store_path(data_dir);
     if path.exists() {
-        fs::remove_file(&path).map_err(|_| {
-            Problem::plain("OpenBot could not forget the saved connection.")
-        })?;
+        fs::remove_file(&path)
+            .map_err(|_| Problem::plain("OpenBot could not forget the saved connection."))?;
     }
     Ok(())
 }
@@ -161,15 +159,12 @@ pub fn openbot_site_url(value: &str) -> Result<String, Problem> {
 }
 
 fn write_record(data_dir: &Path, record: &Record) -> Result<(), Problem> {
-    fs::create_dir_all(data_dir).map_err(|_| {
-        Problem::plain("OpenBot could not save where it should open.")
-    })?;
-    let encoded = serde_json::to_vec(record).map_err(|_| {
-        Problem::plain("OpenBot could not save where it should open.")
-    })?;
-    fs::write(store_path(data_dir), encoded).map_err(|_| {
-        Problem::plain("OpenBot could not save where it should open.")
-    })
+    fs::create_dir_all(data_dir)
+        .map_err(|_| Problem::plain("OpenBot could not save where it should open."))?;
+    let encoded = serde_json::to_vec(record)
+        .map_err(|_| Problem::plain("OpenBot could not save where it should open."))?;
+    fs::write(store_path(data_dir), encoded)
+        .map_err(|_| Problem::plain("OpenBot could not save where it should open."))
 }
 
 fn is_loopback_host(host: &str) -> bool {

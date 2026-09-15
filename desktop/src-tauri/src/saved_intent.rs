@@ -73,7 +73,6 @@ impl SavedIntent {
 
     fn record(&mut self, secrets: &BTreeMap<String, String>, credential: &ModelCredential) {
         for (key, category) in [
-            ("INTELLIGENCE_API_KEY", Category::Intelligence),
             ("OPENAI_API_KEY", Category::OpenAiApiKey),
             ("ANTHROPIC_API_KEY", Category::AnthropicApiKey),
             ("CLAUDE_CODE_OAUTH_TOKEN", Category::ClaudePlan),
@@ -181,6 +180,7 @@ fn persist_configuration_with(
     remember: impl FnOnce(&Path, &BTreeMap<String, String>) -> Result<(), Problem>,
 ) -> Result<(), Problem> {
     let mut scoped_secrets = secrets.clone();
+    scoped_secrets.remove("INTELLIGENCE_API_KEY");
     let record = match credential {
         ModelCredential::Compatible {
             base_url, api_key, ..
@@ -217,7 +217,9 @@ fn persist_configuration_with(
         "OpenBot could not record the saved connections. Your previous settings are kept; try Start again.",
         error.to_string(),
     ))?;
-    crate::env::write(&root.join(".env"), settings, purge)
+    let mut env_purge = purge.clone();
+    env_purge.remove("INTELLIGENCE_API_KEY");
+    crate::env::write(&root.join(".env"), settings, &env_purge)
         .map_err(|error| Problem::with("OpenBot could not write its settings.", error.to_string()))
 }
 
@@ -235,8 +237,9 @@ mod tests {
                 "synthetic-intelligence".into(),
             ),
             ("OPENAI_API_KEY".into(), "synthetic-model".into()),
+            ("ANTHROPIC_API_KEY".into(), "synthetic-anthropic".into()),
         ]);
-        let legacy = "INTELLIGENCE_API_KEY=synthetic-intelligence\nOPENAI_API_KEY=synthetic-model\nCUSTOM=kept\n".to_string();
+        let legacy = "INTELLIGENCE_API_KEY=synthetic-intelligence\nOPENAI_API_KEY=synthetic-model\nANTHROPIC_API_KEY=synthetic-anthropic\nCUSTOM=kept\n".to_string();
         std::fs::write(root.join(".env"), &legacy).unwrap();
         (root, secrets, legacy)
     }
@@ -334,7 +337,11 @@ mod tests {
             .unwrap();
             let written = std::fs::read_to_string(root.join(".env")).unwrap();
             assert!(written.contains("CUSTOM=kept"));
-            assert!(!written.contains("synthetic"));
+            assert!(written.contains("INTELLIGENCE_API_KEY=synthetic-intelligence"));
+            assert!(!written.contains("OPENAI_API_KEY"));
+            assert!(!written.contains("synthetic-model"));
+            assert!(!written.contains("synthetic-anthropic"));
+            assert!(!written.contains("synthetic-plan"));
             assert_eq!(
                 SavedIntent::read(&root).model,
                 Some(ModelIntent::ChatGptPlan)
@@ -430,7 +437,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(remembered_root.as_deref(), Some(root.as_path()));
-        assert_eq!(remembered, secrets);
+        assert!(!remembered.contains_key("INTELLIGENCE_API_KEY"));
+        assert_eq!(
+            remembered.get("OPENAI_API_KEY").map(String::as_str),
+            Some("synthetic-model"),
+        );
+        assert_eq!(
+            remembered.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("synthetic-anthropic"),
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -493,10 +508,8 @@ mod tests {
             .unwrap();
             let reopened = SavedIntent::read(&root);
             assert_eq!(reopened.model, Some(model));
-            assert_eq!(
-                reopened.categories,
-                BTreeSet::from([Category::Intelligence, category])
-            );
+            assert_eq!(reopened.categories, BTreeSet::from([category]));
+            assert!(!reopened.categories.contains(&Category::Intelligence));
             let json = std::fs::read_to_string(root.join(FILE)).unwrap();
             assert!(!json.contains("synthetic"));
             assert!(!json.contains("token"));
@@ -708,6 +721,97 @@ mod tests {
         assert!(SavedIntent::read(&root)
             .categories
             .contains(&Category::ClaudePlan));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn an_old_intelligence_category_survives_a_model_start_without_being_reclassified() {
+        let root = temp_root("preserve-intelligence-category");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(FILE),
+            r#"{"version":1,"categories":["intelligence","open-ai-api-key"],"model":"open-ai-api-key"}"#,
+        )
+        .unwrap();
+        persist_configuration_with(
+            &root,
+            &BTreeMap::new(),
+            &BTreeMap::from([("OPENAI_API_KEY".into(), "synthetic-openai".into())]),
+            &BTreeMap::from([("OPENAI_API_KEY".into(), "synthetic-openai".into())]),
+            &ModelCredential::OpenAi {
+                api_key: "synthetic-openai".into(),
+            },
+            |_, _| Ok(()),
+        )
+        .unwrap();
+        let recorded = SavedIntent::read(&root);
+        assert_eq!(recorded.model, Some(ModelIntent::OpenAiApiKey));
+        assert!(recorded.categories.contains(&Category::Intelligence));
+        assert!(recorded.categories.contains(&Category::OpenAiApiKey));
+        let json = std::fs::read_to_string(root.join(FILE)).unwrap();
+        assert!(json.contains("intelligence"));
+        assert!(!json.contains("synthetic"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn persist_does_not_send_an_old_source_key_to_the_store() {
+        let root = temp_root("no-forward-intelligence");
+        std::fs::create_dir_all(&root).unwrap();
+        let mut seen = BTreeMap::new();
+        persist_configuration_with(
+            &root,
+            &BTreeMap::new(),
+            &BTreeMap::from([
+                (
+                    "INTELLIGENCE_API_KEY".into(),
+                    "synthetic-intelligence".into(),
+                ),
+                ("OPENAI_API_KEY".into(), "synthetic-openai".into()),
+            ]),
+            &BTreeMap::from([("OPENAI_API_KEY".into(), "synthetic-openai".into())]),
+            &ModelCredential::OpenAi {
+                api_key: "synthetic-openai".into(),
+            },
+            |_, secrets| {
+                seen = secrets.clone();
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(!seen.contains_key("INTELLIGENCE_API_KEY"));
+        assert_eq!(
+            seen.get("OPENAI_API_KEY").map(String::as_str),
+            Some("synthetic-openai")
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn persist_leaves_an_old_source_key_in_the_env_file() {
+        let root = temp_root("keep-env-intelligence");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(".env"),
+            "INTELLIGENCE_API_KEY=synthetic-intelligence\nOPENAI_API_KEY=old\nCUSTOM=kept\n",
+        )
+        .unwrap();
+        persist_configuration_with(
+            &root,
+            &BTreeMap::from([("CUSTOM".into(), "kept".into())]),
+            &BTreeMap::from([("OPENAI_API_KEY".into(), "synthetic-openai".into())]),
+            &BTreeMap::from([
+                ("INTELLIGENCE_API_KEY".into(), String::new()),
+                ("OPENAI_API_KEY".into(), "synthetic-openai".into()),
+            ]),
+            &ModelCredential::OpenAi {
+                api_key: "synthetic-openai".into(),
+            },
+            |_, _| Ok(()),
+        )
+        .unwrap();
+        let env = std::fs::read_to_string(root.join(".env")).unwrap();
+        assert!(env.contains("INTELLIGENCE_API_KEY=synthetic-intelligence"));
+        assert!(env.contains("CUSTOM=kept"));
+        assert!(!env.contains("OPENAI_API_KEY=old"));
         std::fs::remove_dir_all(root).unwrap();
     }
 }

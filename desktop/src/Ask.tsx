@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { asProblem, Failure, type Problem } from "./Problem";
 
 /**
@@ -27,7 +27,7 @@ export function Ask({
 }) {
   const [question, setQuestion] = useState(suggestion);
   const [answer, setAnswer] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [isPending, startTransition] = useTransition();
   /*
    * THE FAILURE IS THIS SCREEN'S TO SHOW, and it used to be nobody's.
    *
@@ -38,18 +38,17 @@ export function Ask({
    */
   const [failure, setFailure] = useState<Problem | null>(null);
 
-  async function ask() {
-    setAsking(true);
+  function ask() {
     setFailure(null);
     setAnswer(null);
-    try {
-      const answer = await onAsk(question);
-      setAnswer(answer);
-    } catch (error) {
-      setFailure(asProblem(error));
-    } finally {
-      setAsking(false);
-    }
+    startTransition(async () => {
+      try {
+        const answer = await onAsk(question);
+        setAnswer(answer);
+      } catch (error) {
+        setFailure(asProblem(error));
+      }
+    });
   }
 
   return (
@@ -68,7 +67,7 @@ export function Ask({
           onChange={(event) => {
             setQuestion(event.target.value);
           }}
-          disabled={asking}
+          disabled={isPending}
           onKeyDown={(event) => {
             // Enter also confirms a character being composed through an input method (Japanese,
             // Chinese, Korean). Asking on that Enter would send the question with its last character
@@ -76,7 +75,7 @@ export function Ask({
             // instead sends it after compositionend with key code 229. Wait for either.
             if (
               event.key === "Enter" &&
-              !asking &&
+              !isPending &&
               !event.nativeEvent.isComposing &&
               event.nativeEvent.keyCode !== 229
             ) {
@@ -97,8 +96,8 @@ export function Ask({
 
       <div className="row">
         {answer === null ? (
-          <button type="button" onClick={ask} disabled={asking}>
-            {asking ? "Asking…" : "Ask"}
+          <button type="button" onClick={ask} disabled={isPending}>
+            {isPending ? "Asking…" : "Ask"}
           </button>
         ) : (
           <button type="button" onClick={onOpen}>
@@ -114,7 +113,7 @@ export function Ask({
           <button
             type="button"
             className="quiet"
-            disabled={asking}
+            disabled={isPending}
             onClick={() => {
               onBack();
             }}
@@ -127,7 +126,7 @@ export function Ask({
             type="button"
             className="quiet"
             onClick={ask}
-            disabled={asking}
+            disabled={isPending}
           >
             Ask again
           </button>

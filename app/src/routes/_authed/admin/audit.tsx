@@ -181,9 +181,7 @@ function Row({
     carriedOut?: boolean;
   };
   const element = payload.element as
-    | { role?: string; name?: string }
-    | string
-    | undefined;
+    { role?: string; name?: string } | string | undefined;
   const outcome = outcomeOf(event.eventType);
   const refused = outcome === "refused";
   const stalled = event.eventType === "agent.stream_stalled";

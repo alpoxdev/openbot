@@ -56,8 +56,7 @@ export type HandoffCaps = {
 };
 
 export type HandoffOutcome =
-  | { ok: true; to: string; toName: string }
-  | { ok: false; refusal: string };
+  { ok: true; to: string; toName: string } | { ok: false; refusal: string };
 
 export type HandoffDesk = {
   send: (input: {

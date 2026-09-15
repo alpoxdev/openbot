@@ -18,7 +18,10 @@ function RouteComponent() {
     // below 768px.
     <div className="flex h-svh min-h-0 overflow-hidden min-[1100px]:[--chat-rail:4.5rem]">
       <AgentRail />
-      <SidebarShell className="h-svh min-w-0 flex-1 overflow-hidden" width="340px">
+      <SidebarShell
+        className="h-svh min-w-0 flex-1 overflow-hidden"
+        width="340px"
+      >
         <AppSidebar />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <Outlet />

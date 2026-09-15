@@ -526,8 +526,7 @@ export function ConversationView({
  */
 function releaseStagedAttachment(attachment: Attachment): void {
   const metadata = attachment.metadata as
-    | { attachmentId?: unknown }
-    | undefined;
+    { attachmentId?: unknown } | undefined;
   if (typeof metadata?.attachmentId !== "string") {
     return;
   }

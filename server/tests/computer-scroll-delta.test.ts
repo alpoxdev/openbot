@@ -12,15 +12,11 @@ function appWith(calls: { deltaY?: number }[]) {
       _actor: unknown,
       input: { deltaY?: number },
     ) => {
-      calls.push({
-        ...(input.deltaY !== undefined ? { deltaY: input.deltaY } : {}),
-      });
+      calls.push(input.deltaY !== undefined ? { deltaY: input.deltaY } : {});
       return { action: "scroll", url: "https://openbot.test/" };
     },
     humanInput: async (_botId: string, input: { deltaY?: number }) => {
-      calls.push({
-        ...(input.deltaY !== undefined ? { deltaY: input.deltaY } : {}),
-      });
+      calls.push(input.deltaY !== undefined ? { deltaY: input.deltaY } : {});
       return { action: "human_scroll", url: "https://openbot.test/" };
     },
   } as unknown as ComputerGateway;

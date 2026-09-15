@@ -20,8 +20,7 @@ import type {
 } from "./profile-types";
 
 type AgentInputParseResult =
-  | { ok: true; value: CreateAgentInput }
-  | { ok: false; error: string };
+  { ok: true; value: CreateAgentInput } | { ok: false; error: string };
 
 type AgentInputObject = {
   name?: unknown;

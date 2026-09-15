@@ -21,11 +21,7 @@ import { channelQueryOptions } from "@/lib/channels/queries";
  * as the id, never as an invented coworker. Home and the new-channel screen pass no ids, so the
  * list is empty rather than filled with the whole roster.
  */
-export function MembersList({
-  agentIds,
-}: {
-  agentIds: readonly string[];
-}) {
+export function MembersList({ agentIds }: { agentIds: readonly string[] }) {
   const { data: agents } = useQuery(agentListQueryOptions());
   const { data: user } = useQuery(currentUserQueryOptions());
   const byId = new Map((agents ?? []).map((agent) => [agent.id, agent]));
@@ -34,10 +30,7 @@ export function MembersList({
     <ul className="flex flex-col gap-1 px-2 py-2">
       {user ? (
         <li className="flex items-center gap-2 rounded-lg px-2 py-1.5">
-          <PersonInitials
-            email={user.email}
-            name={user.name}
-          />
+          <PersonInitials email={user.email} name={user.name} />
           <span className="min-w-0 truncate text-sm">
             {user.name?.trim() || user.email}
           </span>

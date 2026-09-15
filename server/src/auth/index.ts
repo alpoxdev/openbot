@@ -160,9 +160,7 @@ export function createAuth(
       encryptOAuthTokens: true,
     },
     plugins,
-    socialProviders: {
-      ...(authConfig.google ? { google: authConfig.google } : {}),
-    },
+    socialProviders: authConfig.google ? { google: authConfig.google } : {},
     databaseHooks: {
       user: {
         create: {

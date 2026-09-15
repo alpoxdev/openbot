@@ -11,8 +11,7 @@ const syntheticKey = "sra009-synthetic-before-key";
 
 declare global {
   var __SRA009_AFTER_TOOL_SELECTION_RESTORE__:
-    | (() => Promise<void> | void)
-    | undefined;
+    (() => Promise<void> | void) | undefined;
   var __SRA009_AFTER_TOOL_SELECTION_SETUP_RESTORE__:
     | ((setup: {
         llmUrl: string;

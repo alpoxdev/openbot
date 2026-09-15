@@ -33,12 +33,15 @@ export async function joinWithin({
     return;
   }
 
-  try {
-    await detach();
-  } catch {
-    // A detach with nothing to detach is not a problem worth reporting, and the wait below is what
-    // this function actually promises. Swallowing it here keeps that promise on both paths.
-  }
+  /*
+   * Detach is best-effort too. Do not await it before entering the bounded grace period: a client
+   * transport can leave the request promise pending even after the stream has stopped, and that
+   * would turn a bounded join back into an unbounded one. Attach the rejection handler immediately
+   * so a failed detach cannot become an unhandled rejection.
+   */
+  void Promise.resolve()
+    .then(detach)
+    .catch(() => undefined);
   /*
    * Bounded, because a detach is a request and not a guarantee.
    *

@@ -19,10 +19,7 @@ import {
 import { cleanup, render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { AgentRail } from "@/components/app-sidebar/agent-rail";
-import {
-  MembersList,
-  MembersRail,
-} from "@/components/channels/members-rail";
+import { MembersList, MembersRail } from "@/components/channels/members-rail";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { type AgentProfile, agentKeys } from "@/lib/agents/queries";
 import { authKeys, type AuthenticatedUser } from "@/lib/auth/queries";
@@ -87,11 +84,7 @@ function clientWith(data: {
   return queryClient;
 }
 
-function renderAt(
-  path: string,
-  queryClient: QueryClient,
-  children: ReactNode,
-) {
+function renderAt(path: string, queryClient: QueryClient, children: ReactNode) {
   const rootRoute = createRootRoute({
     component: () => (
       <TooltipProvider>

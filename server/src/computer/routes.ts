@@ -323,7 +323,7 @@ export function createComputerRoutes(
         actor,
         {
           key: body.key,
-          ...(ref ?? {}),
+          ...ref,
         },
         signal,
       );
@@ -333,9 +333,11 @@ export function createComputerRoutes(
   routes.post("/:botId/scroll", (context) =>
     act(context, (botId, actor, body) => {
       if (!usableDeltaY(body?.deltaY)) return badDeltaY;
-      return gateway.scroll(botId, actor, {
-        ...(typeof body?.deltaY === "number" ? { deltaY: body.deltaY } : {}),
-      });
+      return gateway.scroll(
+        botId,
+        actor,
+        typeof body?.deltaY === "number" ? { deltaY: body.deltaY } : {},
+      );
     }),
   );
 
@@ -526,7 +528,7 @@ export function createComputerRoutes(
     try {
       return context.json(
         await gateway.humanInput(context.req.param("botId"), {
-          ...(body ?? {}),
+          ...body,
           // Last, so the checked value wins. Spread over it, a body carrying its own `kind` replaced
           // the one this route had just checked, and the gateway puts that value into the path it
           // calls on the computer.
@@ -558,11 +560,13 @@ export function createComputerRoutes(
 
   routes.post("/:botId/files/list", (context) =>
     act(context, (botId, actor, body) =>
-      gateway.listFiles(botId, actor, {
-        ...(typeof body?.path === "string" && body.path.trim()
+      gateway.listFiles(
+        botId,
+        actor,
+        typeof body?.path === "string" && body.path.trim()
           ? { path: body.path.trim() }
-          : {}),
-      }),
+          : {},
+      ),
     ),
   );
 

@@ -103,8 +103,7 @@ export type ProposedSkill = z.infer<typeof proposedSkillSchema>;
 
 /** What checking a proposal answers with: the four fields to save, or the problems to fix. */
 export type CheckedProposal =
-  | { ok: true; values: SkillFormValues }
-  | { ok: false; problems: string[] };
+  { ok: true; values: SkillFormValues } | { ok: false; problems: string[] };
 
 /**
  * Hold a proposal to the same rule the form is held to.

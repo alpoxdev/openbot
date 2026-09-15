@@ -17,10 +17,12 @@
  *
  * WHY prefers-color-scheme AND NOT THIS APP'S THEME. For the same reason: the iframe is a separate
  * document and cannot see which theme the person picked. `prefers-color-scheme` is the only signal
- * that crosses, so a generated interface follows the browser rather than the app's own switch. A
- * person who has overridden their OS theme in OpenBot will see a generated interface that disagrees
- * with the surface around it. That is a known limitation of the sandbox rather than something this
- * text can fix.
+ * that crosses, so a generated interface follows the browser rather than the app's own preference.
+ * Because OpenBot now follows the operating system by default, the two agree for anyone who has left
+ * the Appearance setting alone — which is most people. They disagree only for somebody who has
+ * deliberately pinned Light or Dark against what their system is set to, and that person will see a
+ * generated interface that disagrees with the surface around it. That is a known limitation of the
+ * sandbox rather than something this text can fix.
  */
 export const GENERATIVE_UI_DESIGN_SKILL = `You are generating a self-contained interface that renders inside a sandboxed iframe in OpenBot's chat transcript. It must look like it belongs to OpenBot, not like a widget from somewhere else.
 

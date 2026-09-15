@@ -146,8 +146,7 @@ export function agentHandoffQueryOptions(agentId: string) {
 
 /** What the server said when it tried the endpoint. */
 export type ConnectionVerdict =
-  | { ok: true; events: string[] }
-  | { ok: false; reason: string };
+  { ok: true; events: string[] } | { ok: false; reason: string };
 
 /**
  * Ask the server to reach a coworker's endpoint, from where a run will reach it.
@@ -171,9 +170,7 @@ export async function testAgentConnection(
       },
     });
     const body = (await response.json().catch(() => null)) as
-      | ConnectionVerdict
-      | { error?: string }
-      | null;
+      ConnectionVerdict | { error?: string } | null;
     if (body && "ok" in body) return body;
     return {
       ok: false,

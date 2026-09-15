@@ -591,10 +591,7 @@ const TranscriptMessage = memo(function TranscriptMessage({
             still wraps; a full-column ghost used to leave markdown sitting on the page with no
             fill, which is the look this restyle is replacing.
           */}
-          <Bubble
-            align={align}
-            variant={isUser ? "default" : "muted"}
-          >
+          <Bubble align={align} variant={isUser ? "default" : "muted"}>
             <BubbleContent>
               {isUser ? (
                 // A person's own message is shown exactly as they typed it. Rendering it as markdown

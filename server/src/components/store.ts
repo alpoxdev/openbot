@@ -39,8 +39,7 @@ export type GrantedComponent = {
  * what it means rather than naming a table.
  */
 export type ComponentDecision =
-  | { allowed: true; description: string }
-  | { allowed: false; reason: string };
+  { allowed: true; description: string } | { allowed: false; reason: string };
 
 export class ComponentNotFoundError extends Error {
   constructor(name: string) {

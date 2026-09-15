@@ -1,7 +1,4 @@
-import {
-  IconDeviceDesktop,
-  IconSettings,
-} from "@tabler/icons-react";
+import { IconDeviceDesktop, IconSettings } from "@tabler/icons-react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -220,9 +217,7 @@ function RouteComponent() {
             </motion.span>
           </div>
           <div className="flex flex-row items-center gap-0.5">
-            <MembersHeaderButton
-              agentIds={channel.data?.agentIds ?? []}
-            />
+            <MembersHeaderButton agentIds={channel.data?.agentIds ?? []} />
             <Button
               aria-label={
                 needsYou

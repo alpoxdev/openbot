@@ -4,7 +4,13 @@
 [data-openbot-a2ui] {
   --a2ui-primary-color: var(--primary);
   color: inherit;
-  font-family: var(--font-sans, "Pretendard Variable", ui-sans-serif, system-ui, sans-serif);
+  font-family: var(
+    --font-sans,
+    "Pretendard Variable",
+    ui-sans-serif,
+    system-ui,
+    sans-serif
+  );
   font-size: 0.9333rem;
   line-height: 1.5;
 }

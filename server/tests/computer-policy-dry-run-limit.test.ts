@@ -28,9 +28,7 @@ function app(seen: { limit?: number }[]) {
   };
   const auditReader = {
     list: async (query: { limit?: number }) => {
-      seen.push({
-        ...(query.limit !== undefined ? { limit: query.limit } : {}),
-      });
+      seen.push(query.limit !== undefined ? { limit: query.limit } : {});
       return { events: [], nextCursor: undefined };
     },
   } as unknown as AuditReader;

@@ -12,11 +12,9 @@ function appWith(calls: { timeoutMs?: number }[]) {
       _actor: unknown,
       input: { command: string; timeoutMs?: number },
     ) => {
-      calls.push({
-        ...(input.timeoutMs !== undefined
-          ? { timeoutMs: input.timeoutMs }
-          : {}),
-      });
+      calls.push(
+        input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {},
+      );
       return { output: "hi", timedOut: false, elapsedMs: 1 };
     },
   } as unknown as ComputerGateway;

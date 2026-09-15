@@ -11,7 +11,9 @@
     "prebuild": "bun run --cwd .. generate:app-config",
     "predev": "bun run --cwd .. generate:app-config",
     "pretypecheck": "bun run --cwd .. generate:app-config",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint . && prettier --check .",
+    "format": "oxlint --fix . && prettier --write ."
   },
   "dependencies": {
     "@ag-ui/core": "0.0.59",
@@ -52,6 +54,8 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "happy-dom": "^20.11.2",
+    "oxlint": "^1.83.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "vite": "^7.1.12"
   }

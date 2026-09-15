@@ -194,8 +194,7 @@ export type GrantedPlugins = {
 };
 
 export type PluginDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 export class PluginRefusedError extends Error {
   constructor(

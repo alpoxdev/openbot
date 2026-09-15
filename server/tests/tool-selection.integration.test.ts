@@ -25,8 +25,7 @@ import { createModelCompleter } from "../src/routing/model";
 
 declare global {
   var __SRA009_AFTER_TOOL_SELECTION_RESTORE__:
-    | (() => Promise<void> | void)
-    | undefined;
+    (() => Promise<void> | void) | undefined;
   var __SRA009_AFTER_TOOL_SELECTION_SETUP_RESTORE__:
     | ((setup: {
         llmUrl: string;

@@ -17,9 +17,8 @@ import { useStoppedTurn } from "@/lib/copilot/stopped-turn";
 
 export const Route = createFileRoute("/_authed/_app/bot")({
   component: RouteComponent,
-  validateSearch: (search: Record<string, unknown>): { agent?: string } => ({
-    ...(typeof search.agent === "string" ? { agent: search.agent } : {}),
-  }),
+  validateSearch: (search: Record<string, unknown>): { agent?: string } =>
+    typeof search.agent === "string" ? { agent: search.agent } : {},
 });
 
 /**
@@ -35,8 +34,7 @@ export const Route = createFileRoute("/_authed/_app/bot")({
  * for the same reason: a mistyped link is not a crash.
  */
 type BotDetailLookup =
-  | { bot: AgentProfile; status: "found" }
-  | { status: "missing" };
+  { bot: AgentProfile; status: "found" } | { status: "missing" };
 
 function isAgentEnvelope(body: unknown): body is { agent: AgentProfile } {
   if (body === null || typeof body !== "object") return false;

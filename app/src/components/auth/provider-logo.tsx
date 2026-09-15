@@ -47,4 +47,3 @@ function GoogleMark() {
     </svg>
   );
 }
-

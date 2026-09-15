@@ -29,9 +29,10 @@ function channel(
 
 function cache(...pages: ChannelSummary[][]) {
   return {
-    pages: pages.map(
-      (channels): ChannelPage => ({ channels, nextCursor: null }),
-    ),
+    pages: pages.map((channels): ChannelPage => ({
+      channels,
+      nextCursor: null,
+    })),
     pageParams: pages.map(() => ""),
   };
 }

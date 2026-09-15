@@ -15,16 +15,19 @@ import { providerName, signInWith } from "@/lib/auth/client";
  * Starting sign-in for the env provider a deployment can configure.
  */
 describe("signInWith", () => {
-  test.each(["google"] as const)("starts %s through the same call", async (provider) => {
-    const asked: string[] = [];
+  test.each(["google"] as const)(
+    "starts %s through the same call",
+    async (provider) => {
+      const asked: string[] = [];
 
-    await signInWith(provider, async (input) => {
-      asked.push(input.provider);
-      return {};
-    });
+      await signInWith(provider, async (input) => {
+        asked.push(input.provider);
+        return {};
+      });
 
-    expect(asked).toEqual([provider]);
-  });
+      expect(asked).toEqual([provider]);
+    },
+  );
 
   test("sends the browser back where it started", async () => {
     let callbackURL = "";

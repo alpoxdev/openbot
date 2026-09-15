@@ -30,9 +30,8 @@ import { newId } from "../../../../lib/new-id";
  * reloads preserve the pending recipient without creating an empty channel.
  */
 export const Route = createFileRoute("/_authed/_app/channel/new")({
-  validateSearch: (search: Record<string, unknown>): { agent?: string } => ({
-    ...(typeof search.agent === "string" ? { agent: search.agent } : {}),
-  }),
+  validateSearch: (search: Record<string, unknown>): { agent?: string } =>
+    typeof search.agent === "string" ? { agent: search.agent } : {},
   component: RouteComponent,
 });
 

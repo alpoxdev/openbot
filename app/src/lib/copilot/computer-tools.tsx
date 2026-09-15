@@ -101,7 +101,7 @@ export async function callComputer(
     };
   }
 
-  return { ok: true, ...(body ?? {}) };
+  return { ok: true, ...body };
 }
 
 /** What a computer tool's render can read back out of its own result. */

@@ -911,8 +911,7 @@ describe("a run's inlining budget", () => {
 
     const inlinedBytes = result.reduce((total, part) => {
       const source = part.source as
-        | { type?: unknown; value?: unknown }
-        | undefined;
+        { type?: unknown; value?: unknown } | undefined;
       if (source?.type !== "data" || typeof source.value !== "string") {
         return total;
       }

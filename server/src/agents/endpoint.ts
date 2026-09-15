@@ -57,8 +57,7 @@ function namedAsAllowed(
 }
 
 export type EndpointVerdict =
-  | { allowed: true; url: string }
-  | { allowed: false; reason: string };
+  { allowed: true; url: string } | { allowed: false; reason: string };
 
 /**
  * Check an agent endpoint before it is stored.

@@ -14,12 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * whole surface move as one organism instead of a set of independent widgets.
  */
 export type AIState =
-  | "idle"
-  | "listening"
-  | "thinking"
-  | "streaming"
-  | "done"
-  | "error";
+  "idle" | "listening" | "thinking" | "streaming" | "done" | "error";
 
 /**
  * A behavioural hint each component expresses **in its own material**.
@@ -31,12 +26,7 @@ export type AIState =
  * a character changes expression. Same vocabulary, different flesh.
  */
 export type AIStateMotif =
-  | "breathe"
-  | "receive"
-  | "scan"
-  | "pulse"
-  | "ping"
-  | "fault";
+  "breathe" | "receive" | "scan" | "pulse" | "ping" | "fault";
 
 /** Semantic accent applied on top of the component's own palette. */
 export type AIStateAccent = "success" | "danger" | null;
@@ -229,11 +219,7 @@ export const useAmplitudeValue = (
 };
 
 export type AudioAmplitudeStatus =
-  | "idle"
-  | "requesting"
-  | "active"
-  | "denied"
-  | "unsupported";
+  "idle" | "requesting" | "active" | "denied" | "unsupported";
 
 export type UseAudioAmplitudeOptions = {
   /** Request microphone access as soon as the hook mounts. */

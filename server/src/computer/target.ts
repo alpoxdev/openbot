@@ -62,8 +62,7 @@ const INTERNAL_HOSTNAMES = new Set([
 ]);
 
 export type TargetVerdict =
-  | { allowed: true; url: string }
-  | { allowed: false; reason: string };
+  { allowed: true; url: string } | { allowed: false; reason: string };
 
 /**
  * The hostname reduced to the one form the lists below are written in.

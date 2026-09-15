@@ -232,7 +232,7 @@ export function createSandboxComputerProvider(
         ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...(contentType ? { "content-type": contentType } : {}),
         accept: "application/json",
-        ...(rest.headers ?? {}),
+        ...rest.headers,
       },
     } as RequestInit);
     if (response.status === 404) return undefined;

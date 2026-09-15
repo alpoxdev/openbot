@@ -6,6 +6,8 @@ import {
   PageShell,
 } from "@/components/layout/page-shell";
 import { StandingInstructions } from "@/components/settings/standing-instructions";
+import { ConversationImport } from "@/components/settings/conversation-import";
+import { ImportedHistory } from "@/components/channels/imported-history";
 import { useTheme } from "@/components/theme-provider";
 import type { ThemePreference } from "@/lib/theme";
 import {
@@ -48,12 +50,8 @@ function RouteComponent() {
       <PageSection title="General">
         <PageRows>
           {/*
-           * A Select, not the summary-plus-chevron-and-dialog that
-           * `.claude/skills/openbot-screen-layout/SKILL.md` Procedure 3 asks for on a row with more
-           * than two values. The override is deliberate: there are exactly three fixed values, they
-           * fit in the trigger, and a dialog for a three-way choice is more ceremony than the
-           * decision deserves. Two other route selects are precedents, though both sit inside a
-           * dialog body or a form rather than on a settings row.
+           * Keep this fixed three-way choice inline: a dialog would add ceremony without giving the
+           * appearance control any more room or context.
            */}
           <Item size="sm">
             <ItemContent>
@@ -67,12 +65,18 @@ function RouteComponent() {
               </ItemDescription>
             </ItemContent>
             <ItemActions>
-              <Select
+              <Select<ThemePreference>
                 // The label map, so the closed trigger reads a word rather than the raw value.
                 items={{ system: "System", light: "Light", dark: "Dark" }}
-                onValueChange={(next) =>
-                  setPreference(next as ThemePreference)
-                }
+                onValueChange={(next) => {
+                  if (
+                    next === "system" ||
+                    next === "light" ||
+                    next === "dark"
+                  ) {
+                    setPreference(next);
+                  }
+                }}
                 value={preference}
               >
                 <SelectTrigger aria-label="Appearance" className="w-28">
@@ -93,6 +97,8 @@ function RouteComponent() {
        * screen that changes what a coworker says rather than what this browser looks like.
        */}
       <StandingInstructions />
+      <ConversationImport />
+      <ImportedHistory />
       {/*
        * Drawn from the same registry the listeners match against, so this list is what the keys
        * actually do rather than what somebody remembered they did. Read-only on purpose: these

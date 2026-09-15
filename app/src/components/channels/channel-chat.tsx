@@ -141,8 +141,7 @@ function uploadedAttachment(attachment: Attachment): {
   filename?: string;
 } {
   const metadata = attachment.metadata as
-    | { attachmentId?: unknown; filename?: unknown }
-    | undefined;
+    { attachmentId?: unknown; filename?: unknown } | undefined;
   const attachmentId = metadata?.attachmentId;
   if (typeof attachmentId !== "string") {
     throw new Error("Attachment is missing its uploaded id.");
@@ -311,6 +310,13 @@ export function ChannelChat({
   const [historyReadFailed, setHistoryReadFailed] = useState(false);
   // Mount reads and Bot refreshes share one ordering: only the newest read owns the notice.
   const historyReadVersion = useRef(0);
+  /*
+   * A refresh is advisory: it fills in a durable turn the browser did not stream. It must not
+   * append a snapshot captured before a newer local turn. `historyReadVersion` orders refreshes
+   * against one another, while this separate counter orders a read against the person's own send.
+   * The latter matters because a refresh can be in flight while the composer is already usable.
+   */
+  const localTurnVersion = useRef(0);
   useEffect(() => {
     if (isReady) openReadyGate.current();
   }, [isReady]);
@@ -322,6 +328,18 @@ export function ChannelChat({
     const version = ++historyReadVersion.current;
 
     void (async () => {
+      /*
+       * Started before the join, not after it. The store read and the socket join are independent,
+       * and awaiting one and then the other spent the join's whole deadline before the first byte of
+       * history was even asked for. The rejection is attached here so a failed read is not an
+       * unhandled rejection while the join is still in flight; the await below still sees it.
+       */
+      const storedPromise = readThreadMessages(
+        channel.threadId,
+        runtimeAgentId,
+      );
+      storedPromise.catch(() => undefined);
+
       try {
         // Bounded, and finished when it returns; `join-thread.ts` has why that matters.
         await joinWithin({
@@ -338,10 +356,7 @@ export function ChannelChat({
       }
 
       try {
-        const stored = await readThreadMessages(
-          channel.threadId,
-          runtimeAgentId,
-        );
+        const stored = await storedPromise;
         const isCurrent = current && version === historyReadVersion.current;
         if (isCurrent) {
           // The gateway snapshot can lag the store. Keep its valid local rows even when the
@@ -422,6 +437,7 @@ export function ChannelChat({
 
     const pull = () => {
       const version = ++historyReadVersion.current;
+      const turnVersion = localTurnVersion.current;
       const isCurrent = () =>
         !cancelled && version === historyReadVersion.current;
       void (async () => {
@@ -436,6 +452,13 @@ export function ChannelChat({
             runtimeAgentId,
           );
           if (!isCurrent()) return;
+          /*
+           * A newer send owns the transcript from this point on. Do not let a slow replay append
+           * messages from the earlier snapshot beside it (or replace its notice with an old
+           * unavailable result). The activity produced by that send will trigger a fresh pull when
+           * a headless reply needs one.
+           */
+          if (localTurnVersion.current !== turnVersion) return;
           if (stored.availability === "unavailable") {
             // Only an exhausted refresh with no successful read is a failure to announce. Keep the
             // last known ready notice when the store already answered this refresh cycle.
@@ -646,6 +669,11 @@ export function ChannelChat({
       });
     }
 
+    localTurnVersion.current += 1;
+    // Invalidate any refresh already in flight as soon as this turn becomes visible locally. The
+    // per-turn check below still protects a read that races this increment before its promise
+    // continuation runs.
+    historyReadVersion.current += 1;
     target.addMessage({
       content: toMessageContent(trimmed, attachments),
       id: newId(),

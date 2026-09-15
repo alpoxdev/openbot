@@ -1,4 +1,7 @@
-import "./bot-route-default-agent.fixture";
+import {
+  installBotRouteMocks,
+  restoreBotRouteMocks,
+} from "./bot-route-default-agent.fixture";
 
 import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
@@ -13,18 +16,80 @@ import {
 } from "@tanstack/react-router";
 import { cleanup, render } from "@testing-library/react";
 import { type AgentProfile, agentKeys } from "@/lib/agents/queries";
-import { Route as BotRoute } from "@/routes/_authed/_app/bot";
-
-beforeAll(() => GlobalRegistrator.register());
+import { settleReactWork } from "./settle-react-work";
 
 const originalFetch = global.fetch;
 
-afterEach(() => {
-  global.fetch = originalFetch;
-  cleanup();
+let BotRoute: typeof import("@/routes/_authed/_app/bot").Route;
+
+beforeAll(async () => {
+  GlobalRegistrator.register();
+  installBotRouteMocks({
+    useActiveBot: () => {
+      activeBotCalls += 1;
+    },
+    useBotThread: (agentId: string) => ({
+      ...botThreadMock,
+      threadId: botThreadMock.threadId || `thread-${agentId}`,
+    }),
+  });
+  ({ Route: BotRoute } = await import("@/routes/_authed/_app/bot"));
 });
 
-afterAll(() => GlobalRegistrator.unregister());
+afterEach(() => {
+  cleanup();
+  global.fetch = originalFetch;
+  resetBotThreadMock();
+  activeBotCalls = 0;
+});
+
+afterAll(async () => {
+  await settleReactWork();
+  restoreBotRouteMocks();
+  GlobalRegistrator.unregister();
+});
+
+type BotThreadMock = {
+  history: "ready" | "unavailable";
+  startNew: () => void;
+  threadId: string;
+  status:
+    | "local"
+    | "import_pending"
+    | "external_unavailable"
+    | "notfound"
+    | undefined;
+  localReadiness: "ready" | "history_only" | "not_ready" | undefined;
+  liveHandover?: boolean;
+};
+
+const readyBotThread: BotThreadMock = {
+  history: "ready",
+  localReadiness: "ready",
+  liveHandover: true,
+  startNew: () => undefined,
+  status: "local",
+  threadId: "thread-default",
+};
+
+let botThreadMock: BotThreadMock = { ...readyBotThread };
+let activeBotCalls = 0;
+
+function resetBotThreadMock() {
+  botThreadMock = { ...readyBotThread };
+}
+
+function setBotThreadMock(
+  overrides: Partial<BotThreadMock> & { liveHandover?: boolean },
+) {
+  botThreadMock = { ...readyBotThread, ...overrides };
+}
+
+function omitLiveHandover() {
+  const withoutLiveHandover = { ...botThreadMock };
+  delete withoutLiveHandover.liveHandover;
+  botThreadMock = withoutLiveHandover;
+}
 
 function agent(
   overrides: Partial<AgentProfile> & { id: string },
@@ -107,23 +172,22 @@ type TestFileRouteWiring = Parameters<typeof BotRoute.update>[0] & {
   getParentRoute: () => typeof appRoute;
 };
 
-/*
- * TanStack's generated route tree wires file routes with update({ id, path, getParentRoute })
- * (app/src/routeTree.gen.ts), and the memory-router docs use an explicit test tree. The
- * createFileRoute update type exposed to tests does not include those generated wiring fields,
- * so this cast is confined to the file-route attachment point; the rendered component, router,
- * query data, and assertions stay typed.
- */
-const testBotRoute = BotRoute.update({
-  id: "/bot",
-  path: "/bot",
-  getParentRoute: () => appRoute,
-} as TestFileRouteWiring);
-const routeTree = rootRoute.addChildren([
-  authedRoute.addChildren([appRoute.addChildren([testBotRoute])]),
-]);
-
 function renderBot(queryClient: QueryClient, initialEntry = "/bot") {
+  /*
+   * TanStack's generated route tree wires file routes with update({ id, path, getParentRoute })
+   * (app/src/routeTree.gen.ts), and the memory-router docs use an explicit test tree. The
+   * createFileRoute update type exposed to tests does not include those generated wiring fields,
+   * so this cast is confined to the file-route attachment point; the rendered component, router,
+   * query data, and assertions stay typed.
+   */
+  const testBotRoute = BotRoute.update({
+    id: "/bot",
+    path: "/bot",
+    getParentRoute: () => appRoute,
+  } as TestFileRouteWiring);
+  const routeTree = rootRoute.addChildren([
+    authedRoute.addChildren([appRoute.addChildren([testBotRoute])]),
+  ]);
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: [initialEntry] }),
@@ -284,4 +348,68 @@ test("/bot still falls back to the first agent when no picked harness exists", a
   expect(view.getByTestId("copilot-chat").dataset.agentId).toBe(
     "general-assistant",
   );
+});
+
+test("/bot mounts live chat only for an explicit ready handover", async () => {
+  setBotThreadMock({
+    history: "ready",
+    liveHandover: true,
+    localReadiness: "ready",
+    status: "local",
+  });
+  const view = renderBot(queryClientWithAgents([GENERAL_ASSISTANT]));
+
+  expect(await view.findByTestId("copilot-chat")).toBeTruthy();
+  expect(view.queryByTestId("imported-history")).toBeNull();
+  expect(activeBotCalls).toBeGreaterThan(0);
+});
+
+test("/bot keeps history-only threads read-only when handover is false", async () => {
+  setBotThreadMock({
+    history: "ready",
+    liveHandover: false,
+    localReadiness: "history_only",
+    status: "local",
+    threadId: "preserved-history-thread",
+  });
+  const view = renderBot(queryClientWithAgents([GENERAL_ASSISTANT]));
+
+  const notice = await view.findByRole("status");
+  expect(notice.textContent).toContain(
+    "This conversation is history-only. Live handover and tools are disabled.",
+  );
+  expect(notice.textContent).toContain(
+    "Preserved thread ID: preserved-history-thread.",
+  );
+  expect(view.queryByTestId("copilot-chat")).toBeNull();
+  expect(view.getByTestId("imported-history").dataset.threadId).toBe(
+    "preserved-history-thread",
+  );
+  expect(view.getByRole("button", { name: "New chat" })).toBeTruthy();
+  expect(activeBotCalls).toBe(0);
+});
+
+test("/bot fails closed when the handover field is missing", async () => {
+  setBotThreadMock({
+    history: "ready",
+    localReadiness: "ready",
+    status: "local",
+    threadId: "missing-flag-thread",
+  });
+  omitLiveHandover();
+  const view = renderBot(queryClientWithAgents([GENERAL_ASSISTANT]));
+
+  const notice = await view.findByRole("status");
+  expect(notice.textContent).toContain(
+    "This conversation is history-only. Live handover and tools are disabled.",
+  );
+  expect(notice.textContent).toContain(
+    "Preserved thread ID: missing-flag-thread.",
+  );
+  expect(view.queryByTestId("copilot-chat")).toBeNull();
+  expect(view.getByTestId("imported-history").dataset.threadId).toBe(
+    "missing-flag-thread",
+  );
+  expect(view.getByRole("button", { name: "New chat" })).toBeTruthy();
+  expect(activeBotCalls).toBe(0);
 });

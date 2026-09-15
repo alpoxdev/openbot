@@ -3,6 +3,7 @@ import { IconPlus } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { SidebarToggleBar } from "@/components/layout/sidebar-toggle";
+import { ImportedHistory } from "@/components/channels/imported-history";
 import { Button } from "@/components/ui/button";
 import { defaultAgentId } from "@/lib/agents/default-agent";
 import {
@@ -34,7 +35,8 @@ export const Route = createFileRoute("/_authed/_app/bot")({
  * for the same reason: a mistyped link is not a crash.
  */
 type BotDetailLookup =
-  { bot: AgentProfile; status: "found" } | { status: "missing" };
+  | { bot: AgentProfile; status: "found" }
+  | { status: "missing" };
 
 function isAgentEnvelope(body: unknown): body is { agent: AgentProfile } {
   if (body === null || typeof body !== "object") return false;
@@ -125,16 +127,112 @@ function RouteComponent() {
 }
 
 function BotChat({ agentId, name }: { agentId: string; name: string }) {
-  // Tool calls here act on this Bot's own computer.
+  const thread = useBotThread(agentId);
+  if (thread.liveHandover !== true) {
+    return (
+      <ReadOnlyBotHistory
+        agentId={agentId}
+        name={name}
+        startNew={thread.startNew}
+        status={thread.status}
+        threadId={thread.threadId}
+        history={thread.history}
+        localReadiness={thread.localReadiness}
+      />
+    );
+  }
+  return (
+    <LiveBotChat
+      agentId={agentId}
+      name={name}
+      startNew={thread.startNew}
+      threadId={thread.threadId}
+      history={thread.history}
+    />
+  );
+}
+
+function ReadOnlyBotHistory({
+  agentId,
+  name,
+  threadId,
+  history,
+  status,
+  localReadiness,
+  startNew,
+}: {
+  agentId: string;
+  name: string;
+  threadId: string | undefined;
+  history: "ready" | "unavailable";
+  status:
+    | "local"
+    | "import_pending"
+    | "external_unavailable"
+    | "notfound"
+    | undefined;
+  localReadiness: "ready" | "history_only" | "not_ready" | undefined;
+  startNew: () => void;
+}) {
+  const notice =
+    history === "unavailable"
+      ? "The server could not confirm this conversation. Its preserved thread ID was not deleted or replaced."
+      : status === "import_pending" || localReadiness === "not_ready"
+        ? "This conversation is still being imported. It is available as read-only history until import completes."
+        : status === "external_unavailable" || status === "notfound"
+          ? "This conversation is unavailable for live use. Its preserved thread ID was not deleted or replaced."
+          : "This conversation is history-only. Live handover and tools are disabled.";
+
+  return (
+    <div className="flex h-screen flex-col">
+      <SidebarToggleBar />
+      <header className="border-b px-6 py-3">
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-lg font-semibold">{name}</h1>
+          <Button onClick={startNew} size="sm" variant="ghost">
+            <IconPlus />
+            New chat
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Stored conversation history
+        </p>
+      </header>
+      <p
+        className="border-b bg-muted/40 px-6 py-2 text-muted-foreground text-sm"
+        role="status"
+      >
+        {notice}
+        {threadId ? (
+          <>
+            {" "}
+            Preserved thread ID: <code>{threadId}</code>.
+          </>
+        ) : null}
+      </p>
+      <div className="min-h-0 flex-1 overflow-auto p-6">
+        <ImportedHistory agentId={agentId} threadId={threadId} />
+      </div>
+    </div>
+  );
+}
+
+function LiveBotChat({
+  agentId,
+  name,
+  threadId,
+  startNew,
+  history,
+}: {
+  agentId: string;
+  name: string;
+  threadId: string | undefined;
+  startNew: () => void;
+  history: "ready" | "unavailable";
+}) {
+  // Tool calls here act on this Bot's own computer. This child is not mounted for history-only,
+  // pending, unavailable, or unresolved threads.
   useActiveBot(agentId);
-  /*
-   * Minted by this deployment rather than by the chat. `history` reports whether Intelligence
-   * still recognised the thread this browser remembered from a previous visit; when it did not,
-   * `useBotThread` has already swapped in a fresh id on its own; this flag exists only so the
-   * page can say so instead of letting the Bot answer as if nothing were missing. `startNew`
-   * mints another fresh thread on demand for the New chat control below.
-   */
-  const { threadId, history, startNew } = useBotThread(agentId);
   /*
    * A turn that ends without an answer has to be said out loud here, because the packaged chat says
    * nothing. It reports a failed run to an `onError` prop and otherwise carries on as though the

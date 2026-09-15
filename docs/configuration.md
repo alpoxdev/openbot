@@ -20,16 +20,7 @@ bash scripts/start.sh
 | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                | PostgreSQL connection string.                                                                         |
 | `KEY_ENCRYPTION_KEY`          | Base64-encoded 32-byte key for encrypted stored credentials. Generate with `openssl rand -base64 32`. |
-| `INTELLIGENCE_API_URL`        | CopilotKit Intelligence API URL.                                                                      |
-| `INTELLIGENCE_GATEWAY_WS_URL` | CopilotKit Intelligence realtime gateway URL.                                                         |
-| `INTELLIGENCE_API_KEY`        | Runtime key for the Intelligence project.                                                             |
-
-All five above stop server startup if missing. The three `INTELLIGENCE_` values are additionally
-checked as a set, so a partial set is refused as a misconfiguration rather than treated as
-unconfigured.
-
-`COPILOTKIT_LICENSE_TOKEN` is optional: managed Intelligence issues no licence token, and a
-self-hosted Intelligence that has one sets this and has it forwarded to the runtime.
+Both of the above stop server startup if missing. A model credential is still required for the shipped Bots. CopilotKit cloud keys and licence tokens are not required to start. Existing source credentials belong only in an optional import; see [conversation-import.md](conversation-import.md).
 
 `MANAGED_AGENT_AG_UI_URL` names the Bot in the box: the default endpoint for coworkers created in
 the product. It needs `MANAGED_AGENT_TOKEN` beside it, or the server refuses to start. Unset, the
@@ -45,7 +36,7 @@ at `agent-langgraph` on a laptop.
 | `PORT`               | `3001`                             | API server port.                                                    |
 | `NODE_ENV`           | unset                              | `production` refuses the example `KEY_ENCRYPTION_KEY`. It does not decide whether sign-in is required; see `OPENBOT_SINGLE_USER`. |
 | `TENANT_PACKAGE_DIR` | `../examples/fintech`              | Tenant package directory, resolved from `server/`.                  |
-| `DEPLOYMENT_ID`      | the tenant package's id            | Names this deployment inside a shared Intelligence project.          |
+| `DEPLOYMENT_ID`      | the tenant package's id            | Names this deployment so its conversations stay identifiable.        |
 | `OPENAI_API_KEY`     | unset                              | Default model key for built-in agents and both shipped Bots.        |
 | `OPENAI_BASE_URL`    | unset                              | OpenAI-compatible endpoint that key is spent against. See below.    |
 | `BOT_PROVIDER`       | `openai`                           | Provider for `agent-langgraph`: `openai`, `anthropic`, or `google`. |
@@ -394,10 +385,9 @@ To run two deployments on one Docker host, give the second one its own `COMPOSE_
 `COMPUTER_NAMESPACE` and `COMPUTER_IMAGE`. Container and volume names are global to a host, and the
 namespace is what keeps each deployment's per-Bot computers its own.
 
-Give it its own `DEPLOYMENT_ID` as well when it shares an Intelligence project, which a copy made
-from the same `.env` does. Threads are listed per Bot and carry nothing else that says where a
-conversation came from, so the name goes into every thread id a deployment mints and is how its own
-conversations stay tellable from the other's.
+Give it its own `DEPLOYMENT_ID` as well. Conversations are stored on this
+server's PostgreSQL, and the name goes into every thread id a deployment mints
+so two copies on one host stay tellable from each other.
 
 Set `OPENBOT_ONE_COMPUTER_EACH=false` when using `start.sh` to run all Bots against one shared computer.
 

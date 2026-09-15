@@ -1,10 +1,10 @@
 # Architecture
 
-OpenBot combines a React app, a Hono API server, PostgreSQL, CopilotKit Intelligence, AG-UI Bot endpoints, and governed browser computers.
+OpenBot combines a React app, a Hono API server, PostgreSQL as the authoritative conversation store, AG-UI Bot endpoints, and governed browser computers. CopilotKit cloud login is not a runtime requirement.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/architecture-dark.svg">
-  <img src="../assets/architecture-light.svg" alt="A turn goes from the app to the server, which sends it to a Bot over AG-UI. Every tool call the Bot makes returns through the gateway, which resolves the target, decides it against the configured policy, records an audit row, and only then acts, or refuses and names the rule. Allowed actions reach that Bot's own computer, one container each holding its own Chromium, logins and workspace, created by the supervisor. Every decision lands in PostgreSQL; threads and memory live in CopilotKit Intelligence.">
+  <img src="../assets/architecture-light.svg" alt="A turn goes from the app to the server, which sends it to a Bot over AG-UI. Every tool call the Bot makes returns through the gateway, which resolves the target, decides it against the configured policy, records an audit row, and only then acts, or refuses and names the rule. Allowed actions reach that Bot's own computer, one container each holding its own Chromium, logins and workspace, created by the supervisor. Decisions and full conversation transcripts land in PostgreSQL.">
 </picture>
 
 Regenerate it with `bun run diagram` after changing anything it shows.
@@ -14,14 +14,13 @@ Regenerate it with `bun run diagram` after changing anything it shows.
 | Component                | Port                       | Responsibility                                                                                                                              |
 | ------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app`                    | 3010                       | React/Vite interface for channels, Bot chat, live screen, settings, and admin pages.                                                        |
-| `server`                 | 3001                       | API, CopilotKit runtime, auth, roles, tenant package, coworkers, channels, policy, audit, credentials, plugins, components, and connectors. |
+| `server`                 | 3001                       | API, local SSE conversation runtime, auth, roles, tenant package, coworkers, channels, policy, audit, credentials, plugins, components, and connectors. |
 | `agent-computer`         | 4100                       | Chromium, `/workspace`, browser profile, screenshots, snapshots, and file tools.                                                            |
 | `agent-bot`              | 4200                       | Proof-of-concept AG-UI Bot.                                                                                                                     |
 | `agent-langgraph`        | 4201                       | LangGraph AG-UI Bot.                                                                                                                        |
 | `agent-harness`          | 4202                       | The Bot framework harness chosen during setup, one of the `agent-<framework>` images, behind the `harness` compose profile.                 |
 | `supervisor`             | 4500 host / 4300 container | Creates, stops, resets, and lists per-Bot computer containers.                                                                              |
-| PostgreSQL with pgvector | 5432                       | Product data, audit rows, credentials, policy, grants, channels, and components.                                           |
-| CopilotKit Intelligence  | external                   | Durable threads, memory, and realtime gateway.                                                                                              |
+| PostgreSQL with pgvector | 5432                       | Product data, audit rows, credentials, policy, grants, channels, components, and full conversation transcripts (messages, tool history, order). |
 
 `scripts/start.sh` starts PostgreSQL, `agent-computer`, `agent-bot`, `agent-langgraph`, and the supervisor through Docker Compose, then starts `server` and `app` on the host.
 
@@ -31,10 +30,10 @@ The compose file also defines optional SPIRE services. `start.sh` does not start
 
 1. The app opens a channel or direct Bot session.
 2. The server resolves the signed-in actor and selected coworker.
-3. CopilotKit runtime sends the turn to the configured AG-UI endpoint.
+3. The local SSE runtime sends the turn to the configured AG-UI endpoint.
 4. The surface registers available frontend tools: browser tools, MCP tools, and components granted to that Bot.
 5. Acting browser/file/MCP calls return to the server for authorization and audit.
-6. The server streams results back to the app and Intelligence thread.
+6. The server streams results back to the app and persists the transcript in PostgreSQL.
 
 ## Browser action governance
 
@@ -147,7 +146,7 @@ A coworker is a durable Bot profile:
 - `agent_profiles` stores name, title, role, owner, visibility, and deletion state.
 - `agent_preferences` stores per-user roster state.
 
-A channel is a conversation with one coworker and a CopilotKit Intelligence thread mapping. Starting a new channel creates a new thread.
+A channel is a conversation with one coworker whose full messages, tool calls/results and order are stored on this server's PostgreSQL. Starting a new channel creates a new local thread. CopilotKit cloud is not the runtime store. Optional import of an old source is documented in [conversation-import.md](conversation-import.md).
 
 Who may reach one is decided by membership: every channel route resolves the caller in
 `channel_memberships` and refuses without a row. `channels.allowed_groups` is declared in the
@@ -217,8 +216,7 @@ The second Bot runs as the same person, with its own role and its own grants, so
 person may see and no more.
 
 **The answer lands in that Bot's own conversation with the person.** Not the conversation that asked,
-and this is a property of the platform rather than a choice: an Intelligence thread is owned by
-exactly one agent. So the conversation that asked says where the work went, and the one that answers
+and this is a property of the platform rather than a choice: a conversation thread is owned by exactly one agent. So the conversation that asked says where the work went, and the one that answers
 moves to the top of the roster with an unread mark. The person gets both halves.
 
 What the answering conversation keeps is one line saying who asked and what for, not the envelope.

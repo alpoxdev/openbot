@@ -49,14 +49,13 @@ A Bot is any endpoint speaking [AG-UI](https://github.com/ag-ui-protocol/ag-ui),
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg">
-  <img src="assets/architecture-light.svg" alt="You talk to the server, which sends the turn to a Bot over AG-UI. Every tool call the Bot makes comes back through the gateway, which resolves the target, decides it against your policy, records an audit row, and only then acts, or refuses and names the rule. Allowed browser and file actions reach that Bot's own computer, one container each with its own Chromium, logins and workspace, built by the supervisor. Decisions land in PostgreSQL and threads in CopilotKit Intelligence.">
+  <img src="assets/architecture-light.svg" alt="You talk to the server, which sends the turn to a Bot over AG-UI. Every tool call the Bot makes comes back through the gateway, which resolves the target, decides it against your policy, records an audit row, and only then acts, or refuses and names the rule. Allowed browser and file actions reach that Bot's own computer, one container each with its own Chromium, logins and workspace, built by the supervisor. Decisions and full conversation transcripts land in PostgreSQL.">
 </picture>
 
 ## Requirements
 
 - Docker, for PostgreSQL and the shipped Bots.
 - [Bun](https://bun.sh) 1.3+, for the app and API server.
-- A CopilotKit Intelligence project and license. A free plan is available, and Intelligence can be self-hosted.
 - A model key. The proof-of-concept Bot uses OpenAI; the LangGraph Bot can use OpenAI, Anthropic, or Google.
 
 ## Quick start
@@ -72,36 +71,24 @@ A Bot is any endpoint speaking [AG-UI](https://github.com/ag-ui-protocol/ag-ui),
    cp .env.example .env
    ```
 
-2. Get CopilotKit Intelligence credentials:
-
-   ```sh
-   npx --yes copilotkit@latest login
-   npx --yes copilotkit@latest project select
-   ```
-
-   Put the `cpk-...` runtime key from `project select` in `.env` as
-   `INTELLIGENCE_API_KEY`. That is the only Intelligence credential you need:
-   managed Intelligence derives entitlement from the project key, so there is
-   no separate licence token to fetch.
-
-3. Fill the remaining required values:
+2. Fill the remaining required values:
 
    - `OPENAI_API_KEY`
 
-   Keep the managed Intelligence URLs from `.env.example` unless you run Intelligence yourself. The example `KEY_ENCRYPTION_KEY` is public and fine locally; generate your own with:
+   Conversations are stored on this server's PostgreSQL. CopilotKit cloud keys are not required to start. Existing source credentials belong only in an optional import under Settings later. The example `KEY_ENCRYPTION_KEY` is public and fine locally; generate your own with:
 
    ```sh
    openssl rand -base64 32
    ```
 
-4. Install and run:
+3. Install and run:
 
    ```sh
    bun install
    bash scripts/start.sh
    ```
 
-5. Open <http://localhost:3010>.
+4. Open <http://localhost:3010>.
 
 `scripts/start.sh` starts Docker services, applies migrations, starts the API server on port 3001, starts the app on port 3010, and checks that the services answer their own health routes before printing next steps.
 
@@ -177,7 +164,7 @@ Leave `EMBEDDED_POSTGRES` off and set `DATABASE_URL` to point at a database you 
 - **An audit trail you can read**: `/admin/audit` lists what was permitted, what was refused and what failed, and every refusal carries the rule that caused it.
 - **Credentials encrypted at rest**: stored through `/admin/credentials`, never returned by an API, and redacted from audit events.
 - **Loopback by default**: computers bind to `127.0.0.1` and require a per-container token, so nothing reaches a logged-in browser by knowing its port. The supervisor binds there too, because it holds the Docker socket and its token is a shared secret rather than a network boundary.
-- **Durable threads and memory**: conversations survive restarts through CopilotKit Intelligence, and each deployment stamps the threads it owns.
+- **Durable conversations**: full user/assistant messages, tool calls and results, and their order live in this server's PostgreSQL. Reloading the browser, the app, or the API server reads them back from that store. CopilotKit cloud is not the runtime history. Optional import of an old source is documented in [docs/conversation-import.md](docs/conversation-import.md).
 - **Routines**: ask a Bot to do something on a schedule and it does, running as you, in the channel you asked in. A 15-minute floor and a cap of 20 enabled routines keep a sentence from scheduling more than a person meant, and ten failures in a row switch a routine off rather than burn model spend forever. Needs a worker process; see [docs/routines.md](docs/routines.md).
 
 ## Bring your own agent
@@ -216,13 +203,7 @@ See [docs/configuration.md](docs/configuration.md) and [docs/coworkers.md](docs/
 
 - `DATABASE_URL`
 - `KEY_ENCRYPTION_KEY`
-- `INTELLIGENCE_API_URL`
-- `INTELLIGENCE_GATEWAY_WS_URL`
-- `INTELLIGENCE_API_KEY`
-
-`COPILOTKIT_LICENSE_TOKEN` is optional. A self-hosted Intelligence with its own
-licence can still set it and it is forwarded to the runtime; managed Intelligence
-does not issue one and startup no longer asks for it.
+A model credential is still required for the shipped Bots. CopilotKit cloud keys and licence tokens are not startup environment. Existing source credentials are collected only for an explicit import, never to start.
 
 Settings worth knowing:
 
@@ -242,7 +223,7 @@ Settings worth knowing:
 | `AGENT_COMPUTER_ALLOW_PRIVATE_HOSTS` | Lets a Bot reach this machine's own services. Local only, and refused under `NODE_ENV=production`. |
 | `AGENT_ENDPOINT_ALLOWED_HOSTS`       | Private addresses an agent may be registered at, comma separated. A host, optionally with a port. |
 | `TENANT_PACKAGE_DIR`                 | Directory containing tenant YAML. Defaults to `../examples/fintech`.      |
-| `DEPLOYMENT_ID`                      | Names this deployment when two share one Intelligence project.            |
+| `DEPLOYMENT_ID`                      | Names this deployment so its conversations stay identifiable.            |
 
 Full reference: [docs/configuration.md](docs/configuration.md).
 
@@ -251,13 +232,12 @@ Full reference: [docs/configuration.md](docs/configuration.md).
 | Service                  | Port                       | Purpose                                                                                          |
 | ------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
 | `app`                    | 3010                       | React/Vite UI.                                                                                   |
-| `server`                 | 3001                       | Hono API, CopilotKit runtime, auth, policy, audit, plugins, components, coworkers, and channels. |
+| `server`                 | 3001                       | Hono API, local SSE conversation runtime, auth, policy, audit, plugins, components, coworkers, and channels. |
 | `agent-computer`         | 4100                       | CloakBrowser plus `/workspace` and browser profile.                                              |
 | `agent-bot`              | 4200                       | Proof-of-concept AG-UI Bot.                                                                          |
 | `agent-langgraph`        | 4201                       | LangGraph AG-UI Bot.                                                                             |
 | `supervisor`             | 4500 host / 4300 container | Creates and manages one computer per Bot.                                                        |
-| PostgreSQL with pgvector | 5432                       | Product data, policy, audit, credentials, grants, channels, and component metadata.              |
-| CopilotKit Intelligence  | external                   | Durable threads and memory.                                                                      |
+| PostgreSQL with pgvector | 5432                       | Product data, policy, audit, credentials, grants, channels, component metadata, and full conversation transcripts. |
 
 The server gateway is the product/API path for Bot browser and file tool calls.
 It resolves the target, evaluates policy, writes an audit row, and then calls

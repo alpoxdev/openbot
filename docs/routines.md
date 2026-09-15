@@ -123,3 +123,4 @@ limit; and a tenant package cannot yet ship routines the way it ships agents, ch
   shared work queue.
 - [Coworkers](coworkers.md) — durable Bot profiles and channels, which a routine posts into.
 - [Configuration](configuration.md) — `WORKER_SHARED_SECRET`, `SERVER_INTERNAL_URL`.
+- [Conversation import](conversation-import.md) — optional one-time source import; routine replies still land in the same server-stored channel history.

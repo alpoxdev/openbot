@@ -2,24 +2,18 @@
 
 ## Setup
 
-Install Docker, [Bun](https://bun.sh) 1.3+, `lsof`, `python3`, `openssl`, and `curl`. The
-Intelligence provisioning below also needs `npx` (Node); `scripts/start.sh` uses `openssl` to mint
-the generated secrets on a first run.
+Install Docker, [Bun](https://bun.sh) 1.3+, `lsof`, `python3`, `openssl`, and `curl`.
+`scripts/start.sh` uses `openssl` to mint the generated secrets on a first run.
 
 ```sh
 cp .env.example .env
 bun install
 ```
 
-Provision CopilotKit Intelligence after `.env` exists:
-
-```sh
-npx --yes copilotkit@latest login
-npx --yes copilotkit@latest project select
-```
-
-Put the `cpk-...` runtime key from `project select` in `.env` as
-`INTELLIGENCE_API_KEY`. There is no licence step. Then add `OPENAI_API_KEY`.
+Set `OPENAI_API_KEY` (or the provider-specific model key configured for the shipped Bot). A
+CopilotKit account, project key and licence are not required to start this stack. Existing
+credentials from an old source belong only in the optional, explicit import in Settings; never put
+them in `.env`.
 
 Start the stack:
 
@@ -34,6 +28,30 @@ Use `bash scripts/start.sh` for the full local stack. It starts Docker services,
 Use `bash scripts/stop.sh` to take it down: the app, the routine worker, the API server, the Docker services, and each Bot's computer, which the supervisor makes rather than compose and which therefore outlives `docker compose down`. Pass `--keep-computers` to leave those browsers signed in. Nothing is deleted either way.
 
 Use `bun run dev` only when you want the app and API server without starting the Docker Bots and computers.
+
+## Runtime history
+
+The API serves a local SSE runtime. Once PostgreSQL and the conversation schema are ready,
+`GET /api/capabilities` reports the top-level fields `"mode": "sse"` and
+`"durableHistory": true`; `start.sh` checks that contract. Full user and assistant messages, tool
+calls and results, and their order are authoritative in this server's PostgreSQL, so reloads and
+restarts read the same transcript. There is no CopilotKit cloud history fallback.
+
+Back up PostgreSQL using the system for your development environment. That backup covers local
+transcripts, events and records imported into this database, but not old source conversations that
+were never imported. Preserve `KEY_ENCRYPTION_KEY` separately so encrypted credentials and staged
+blobs remain decryptable; a database dump alone is not sufficient. Restore testing is the operator's
+responsibility, and OpenBot makes no universal backup or recovery promise.
+
+An administrator can optionally start a one-time old-source import from Settings; see
+[conversation-import.md](conversation-import.md). It uses authenticated `GET` requests only and
+does not mutate the source. Its read-only inventory covers only declared user/agent pairs and
+mapped or explicit thread IDs, and can finish with gaps. Missing source state or events may block
+safe continuation, and this checkout does not claim that a live import has run.
+
+Handoff safety caps are top-level settings: `BOT_HANDOFF_MAX_DEPTH` defaults to `1` (`0` disables
+handoffs) and `BOT_HANDOFF_MAX_PER_RUN` defaults to `3`; excess work is refused rather than
+truncated.
 
 ### Desktop development
 

@@ -61,11 +61,12 @@ second container of this image started with `--entrypoint sh` (without it the co
 `CMD`, and this image's entrypoint boots a whole second server before it runs one; see
 [Migrations](#migrations)) — with `SERVER_INTERNAL_URL` and
 `WORKER_SHARED_SECRET` set **on top of this server's whole environment**, not instead of it. That
-sweep builds the same configuration the API server does before it looks for a due routine, so it
-refuses to start without the encryption key, the Intelligence values and an identity provider,
-exactly as the server does: give it the same env file and add those two. Until something does, a
-routine is stored, its next run time is computed, the Routines page shows it, and it never fires.
-See [routines.md](routines.md).
+That sweep builds the same configuration the API server does before it looks for a due routine, so
+it needs the database URL, `KEY_ENCRYPTION_KEY`, `SERVER_INTERNAL_URL` and
+`WORKER_SHARED_SECRET`. It does not need a model key, an identity provider, or a CopilotKit
+account, project key or licence. Give it the server's environment and add those two worker
+settings. Until something does, a routine is stored, its next run time is computed, the Routines
+page shows it, and it never fires. See [routines.md](routines.md).
 
 **The staged-attachment sweep.** Same shape as the routines schedule, with a consequence worth
 stating on its own: a file dropped into the composer is stored before it is sent, and nothing in
@@ -119,8 +120,6 @@ and the fix would not be available.
 | an identity provider | `GOOGLE_OAUTH_*`, with `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` and `INITIAL_ADMIN_EMAILS`. See the README |
 | `EMBEDDED_POSTGRES` | `on` to run the database inside the container. Off by default |
 | `KEY_ENCRYPTION_KEY` | base64 32 bytes. `openssl rand -base64 32`. The example key is refused in production |
-| `INTELLIGENCE_API_URL`, `INTELLIGENCE_GATEWAY_WS_URL`, `INTELLIGENCE_API_KEY` | CopilotKit Intelligence. A free plan is available and it can be self-hosted |
-| `COPILOTKIT_LICENSE_TOKEN` | optional. Managed Intelligence issues none; set it only for a self-hosted Intelligence that has one |
 | a model key | `OPENAI_API_KEY`, or the provider you configured |
 
 `COMPUTER_TOKEN` is generated at start if you do not set one. Both processes that need it are inside
@@ -145,6 +144,32 @@ register Entra/Okta under Admin → Identity providers.
 secure context, which removes a set of browser APIs that are present on `http://localhost` and so
 never missing on a laptop. The app does not depend on any of them, but sign-in cookies still want
 `Secure`, and every platform below terminates TLS for you.
+
+## Conversation history and backups
+
+The server uses a local SSE runtime. `GET /api/capabilities` reports the top-level fields
+`"mode": "sse"` and `"durableHistory": true` once the conversation schema and store are ready.
+Full user and assistant messages, tool calls and results, and their order are authoritative in this
+deployment's PostgreSQL. Reloading the browser, app or API server reads that transcript from the
+same database; there is no CopilotKit cloud history fallback.
+
+Back up PostgreSQL using the backup system for your deployment. A database backup covers the local
+channels, transcripts, events and any records imported into this database, but it cannot recover
+old source conversations that were never imported. Keep the exact `KEY_ENCRYPTION_KEY` in a separate
+protected backup: without it, encrypted credentials and staged blobs cannot be decrypted. Test
+restores against a separate database; OpenBot does not promise universal backup or recovery.
+
+An administrator may optionally start an explicit one-time old-source import from Settings; see
+[conversation-import.md](conversation-import.md). The source client sends authenticated `GET`
+requests only and never mutates the source. Inventory is limited to the declared user/agent pairs
+and mapped or explicit thread IDs, so a completed job is not proof that every conversation in an
+account was found. Read-only inventory can finish with gaps; optional source state or event gaps may
+block safe continuation. This repository has not run a live import and makes no claim that old
+history is already in PostgreSQL.
+
+Handoff safety caps are top-level environment settings: `BOT_HANDOFF_MAX_DEPTH` defaults to `1`
+(`0` disables the capability) and `BOT_HANDOFF_MAX_PER_RUN` defaults to `3`. Both refuse excess
+work rather than truncating it.
 
 ## Migrations
 
@@ -181,7 +206,9 @@ this image's own start-up path and the Helm chart's migration Job both run.
 
 The page snapshot a Bot resolves element references against lives in Postgres, so a second replica
 can answer a click the first one snapshotted. Run more than one if the platform wants it. The
-supervisor is still not in this image, so every replica shares the one browser inside it.
+supervisor is still not in this image, so every replica shares the one browser inside it. The
+conversation transcript remains shared and authoritative in PostgreSQL; replicas do not provide a
+second history store or a universal backup.
 
 ## Platform notes
 

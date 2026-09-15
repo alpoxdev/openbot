@@ -108,6 +108,25 @@ gh attestation verify oci://ghcr.io/alpoxdev/openbot:v0.1.0 -R alpoxdev/openbot
 gh attestation verify oci://ghcr.io/alpoxdev/openbot-supervisor:v0.1.0 -R alpoxdev/openbot
 ```
 
+The released server uses the local SSE runtime. Its `GET /api/capabilities` response has top-level
+`"mode": "sse"` and `"durableHistory": true` when PostgreSQL and the conversation schema are ready;
+`scripts/start.sh` verifies those fields. Full user and assistant messages, tool calls and results,
+and their order are authoritative in the deployment's PostgreSQL. Keep database backups and the
+matching `KEY_ENCRYPTION_KEY` under the operator's backup policy; a database dump cannot recover
+source conversations that were never imported, and OpenBot makes no universal backup or recovery
+promise.
+
+An administrator may explicitly start the optional old-source import from Settings; it is documented
+in [conversation-import.md](conversation-import.md). The source is read with authenticated `GET`
+requests only and is never mutated. Inventory is scoped to declared user/agent pairs and mapped or
+explicit IDs, may finish with gaps, and missing source state or events can block safe continuation.
+No release note or checklist should imply that a live import ran or that every old conversation was
+recovered.
+
+Handoff ceilings remain deployment settings: `BOT_HANDOFF_MAX_DEPTH` defaults to `1` (`0` disables
+handoffs) and `BOT_HANDOFF_MAX_PER_RUN` defaults to `3`. They refuse excess work instead of
+truncating it.
+
 ## What has to be green
 
 Branch protection should require one check, `verify`, which fails unless every other job succeeded.
@@ -140,15 +159,8 @@ not matter: a pull request opened by a workflow does not trigger them.
 The smoke journey in `tests/smoke` is the only check that proves the parts are wired to each other:
 the server reaches the supervisor, the supervisor builds a computer, the gateway decides before the
 browser acts, and the trail records it. It cannot run in CI, and this is not a gap to be closed
-later.
-
-OpenBot only runs in Intelligence mode, and `loadConfig` refuses to start without the project's
-Intelligence values, which a hosted runner has no business holding. The `image` check gets around
-this with placeholder values, because nothing is contacted at start-up, but the journey asserts
-`licenseStatus` is `valid`, and no placeholder can make that true.
-
-So it is a step a person takes, on a machine with real Intelligence credentials, before merging
-the release PR:
+later. It needs Docker, a running deployment with a model credential for the shipped Bot, and an
+authenticated session; no CopilotKit account, project key or licence is required:
 
 ```sh
 bash scripts/start.sh

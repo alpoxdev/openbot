@@ -86,3 +86,14 @@ venv/
 
 # Rust / Tauri extra (desktop/.gitignore already covers target/)
 *.pdb
+
+# Local deployment state, written when the stack is started from this tree.
+#
+# `.secrets/` holds the tokens the server, worker, supervisor and computer share, and `.langchain/`
+# holds the ChatGPT OAuth token the harness signs in with -- both are credentials, and a checkout
+# that committed them would publish them. The two `.openbot-*` files are per-machine state, not
+# source: the install stamp names the deployment version and the saved file records the picked plan.
+.secrets/
+.langchain/
+.openbot-deployment
+.openbot-saved.json

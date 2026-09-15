@@ -136,10 +136,13 @@ holder() {
 identifies_as_openbot() {
   local port="$1" name="$2"
   case "$name" in
-    # A field of this server's own payload. A stray 200 does not carry it.
+    # /health JSON plus public /api/capabilities (top-level mode/durableHistory).
+    # A stray 200 on HTML does not carry both.
     server)
-      curl -fsS --max-time 3 "http://localhost:$port/api/copilotkit/info" 2>/dev/null \
-        | grep -q '"licenseStatus"'
+      curl -fsS --max-time 3 "http://localhost:$port/health" 2>/dev/null \
+        | grep -q '"status":"ok"' || return 1
+      curl -fsS --max-time 3 "http://localhost:$port/api/capabilities" 2>/dev/null \
+        | grep -q '"mode":"sse"'
       ;;
     # The app is static HTML with nothing to interrogate, so its title is the identity available.
     app)
@@ -355,20 +358,20 @@ else
 fi
 
 info "3/4  Runtime health"
-INFO="$(curl -fsS --max-time 8 "http://localhost:$SERVER_PORT/api/copilotkit/info")"
-python3 - "$INFO" <<'PY'
+HEALTH="$(curl -fsS --max-time 8 "http://localhost:$SERVER_PORT/health")"
+CAPS="$(curl -fsS --max-time 8 "http://localhost:$SERVER_PORT/api/capabilities")"
+python3 - "$HEALTH" "$CAPS" <<'PY'
 import json, sys
-info = json.loads(sys.argv[1])
-status, agents = info.get("licenseStatus"), list(info.get("agents", {}))
-if status != "valid":
-    print(f"\033[31m  licence is '{status}', not 'valid'.\033[0m")
-    print("\033[31m  Check INTELLIGENCE_API_KEY: npx copilotkit@latest login && npx copilotkit@latest project select\033[0m")
-    print("\033[31m  See README.md for Intelligence setup.\033[0m")
+health = json.loads(sys.argv[1])
+caps = json.loads(sys.argv[2])
+if health.get("status") != "ok":
+    print(f"\033[31m  /health is '{health.get('status')}', not 'ok'.\033[0m")
     raise SystemExit(1)
-if not agents:
-    print("\033[31m  No Bots registered.\033[0m")
+mode, durable = caps.get("mode"), caps.get("durableHistory")
+if mode != "sse" or durable is not True:
+    print(f"\033[31m  /api/capabilities mode={mode!r} durableHistory={durable!r}; need mode sse and durableHistory true.\033[0m")
     raise SystemExit(1)
-print(f"\033[32m  licence valid · mode {info.get('mode')} · Bots: {', '.join(agents)}\033[0m")
+print("\033[32m  server /health ok · runtime sse · durableHistory true\033[0m")
 PY
 
 info "4/4  App"

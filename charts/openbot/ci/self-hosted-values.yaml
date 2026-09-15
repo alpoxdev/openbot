@@ -5,9 +5,6 @@
 # default is wrong.
 config:
   initialAdminEmails: admin@example.com
-  intelligence:
-    apiUrl: https://api.intelligence.copilotkit.ai
-    gatewayWsUrl: wss://realtime.intelligence.copilotkit.ai
   auth:
     google:
       clientId: example.apps.googleusercontent.com
@@ -24,10 +21,8 @@ secrets:
   # `.env.example`, which the server refuses to start with in production: the target rendered, and
   # the deployment it described could never run. Supply a real one:
   #   --set-string secrets.keyEncryptionKey="$(openssl rand -base64 32)"
-  intelligenceApiKey: "example-for-rendering-only"
   googleClientSecret: "example-for-rendering-only"
   computerToken: "example-for-rendering-only"
-  licenseToken: "example-for-rendering-only"
   # So the routines CronJob renders in CI at all. Rendering example only.
   workerSharedSecret: "example-for-rendering-only"
 ingress:

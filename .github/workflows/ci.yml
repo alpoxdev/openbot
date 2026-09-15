@@ -376,21 +376,14 @@ jobs:
           # serve an open deployment. Saying so is the point: the flag is how somebody declares they
           # meant it. This was `OPENBOT_DEV_NO_AUTH=1` before, which the code never accepted at all,
           # since it compares against the exact string "true"; it did nothing and nothing noticed.
-          #
-          # Placeholders, not secrets. `loadConfig` refuses to start without Intelligence and a
-          # licence configured, but it only checks that they are present and well-formed; nothing is
-          # contacted at start-up and /api/capabilities reads config alone. So this proves the image
-          # boots and serves without needing a licence, which is the part CI cannot have: a licence
-          # is bound to the machine it was issued for. Whether Intelligence actually answers is what
-          # the smoke journey checks, on a real deployment.
+          # The image check exercises startup only. The model key is a test value: this probe does not
+          # run a model turn, and no source-account credential belongs in CI.
           docker run -d --name openbot-ci -p 3001:3001 \
             -e EMBEDDED_POSTGRES=on \
             -e KEY_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
             -e TRUSTED_ORIGINS=http://localhost:3001 \
-             -e OPENBOT_SINGLE_USER=true \
-             -e INTELLIGENCE_API_URL=https://api.intelligence.copilotkit.ai \
-            -e INTELLIGENCE_GATEWAY_WS_URL=wss://realtime.intelligence.copilotkit.ai \
-            -e INTELLIGENCE_API_KEY=ci-not-a-real-key \
+            -e OPENBOT_SINGLE_USER=true \
+            -e OPENAI_API_KEY=ci-not-a-real-model-key \
             openbot:ci
           for attempt in $(seq 1 150); do
             if curl -fsS http://localhost:3001/api/capabilities >/dev/null 2>&1; then

@@ -18,18 +18,10 @@ architecture you have and push it somewhere the cluster can reach. Check before 
 docker manifest inspect ghcr.io/alpoxdev/openbot:v0.0.9 | grep architecture
 ```
 
-**Intelligence credentials.** OpenBot requires CopilotKit Intelligence and the chart refuses to
-install without `secrets.intelligenceApiKey`. It comes from the CLI, on any machine with a browser:
-
-```sh
-npx --yes copilotkit@latest login           # browser sign-in
-npx --yes copilotkit@latest project select  # prints the cpk-... runtime key
-```
-
-That key is the only Intelligence credential a managed install needs; the free plan is enough.
-`secrets.licenseToken` is optional and exists for a self-hosted Intelligence that issues its own
-licence. `npx --yes copilotkit@latest license --print` prints one without writing it to a local
-`.env`, which is what you want for something you are about to paste into a Secret.
+**A model credential.** The shipped Bots need a model API key. Set `secrets.modelApiKey`, or put
+the `model-api-key` entry in the Secret named by `secrets.existingSecret` or in
+`externalSecrets.data`. Keep it in a Secret rather than a values file. A CopilotKit account,
+project key or licence is not required to start this chart.
 
 **A default StorageClass**, or a named one. Both a Bot's computer and the bundled database ask for
 a volume, and a fresh cluster often has no class marked default. See
@@ -113,13 +105,17 @@ helm dependency build charts/openbot
 helm upgrade --install openbot charts/openbot \
   --namespace openbot --create-namespace \
   --set postgresql.enabled=true \
-  --set config.initialAdminEmails=you@example.com \
-  --set-string secrets.keyEncryptionKey="$(openssl rand -base64 32)"
+  --set config.singleUser=true \
+  --set-string secrets.keyEncryptionKey="$(openssl rand -base64 32)" \
+  --set-string secrets.computerToken="$(openssl rand -hex 32)" \
+  --set-string postgresql.auth.password="$(openssl rand -hex 24)"
 ```
 
 `secrets.keyEncryptionKey` encrypts the credential vault. Generate it once, keep it, and do not put
 it in a file anybody commits. The chart marks the Secret it creates `helm.sh/resource-policy: keep`,
-so an uninstall does not take the key that every stored credential was encrypted with.
+so an uninstall does not take the key that every stored credential was encrypted with. The bundled
+database password is also required on later upgrades; retain it or use `postgresql.auth.existingSecret`.
+Supply `secrets.modelApiKey` (or its existing/external Secret entry) before using a shipped Bot.
 
 ## What the defaults assume
 
@@ -135,6 +131,11 @@ in PostgreSQL, and one replica hides every bug that is not.
 works on its own. A replica must not carry one: a browser is a few hundred megabytes holding one
 Bot's logins, so scaling the API would scale those with it. `server.embeddedComputer` is off here,
 and asking for it with more than one replica is refused at install time.
+
+The API advertises a local SSE runtime through `GET /api/capabilities`: once the conversation schema
+and PostgreSQL are ready, its top-level fields are `"mode": "sse"` and `"durableHistory": true`.
+Full user and assistant messages, tool calls and results, and their order are authoritative in this
+deployment's PostgreSQL; replicas share that store rather than keeping separate histories.
 
 ## Your own database, which is what a real deployment uses
 
@@ -197,6 +198,27 @@ Nothing of yours is in it: `vector` existed for the `embedding` column on `chunk
 drops in the same transaction. A deployment that added a vector column of its own is the one case
 where that is not true, and `0010` is written to fail rather than take it; that deployment should
 keep the extension and apply only the table drops by hand.
+
+## Conversation history and backups
+
+PostgreSQL is the authoritative history store for this chart. A database backup covers local
+transcripts, events and records imported into this deployment, but not old source conversations
+that were never imported. Preserve the exact `secrets.keyEncryptionKey` (or the key in the existing
+Secret) in a separate protected backup: without it, encrypted credentials and staged blobs cannot be
+decrypted. Test restores with your database provider; this chart does not promise universal backup or
+recovery.
+
+An administrator can optionally start the explicit one-time old-source import from Settings; see
+[docs/conversation-import.md](../../docs/conversation-import.md). Source access is authenticated
+`GET` only and never mutates the old source. Inventory is read-only and limited to declared
+user/agent pairs plus mapped or explicitly supplied thread IDs, so completion does not mean every
+conversation in an account was found. Jobs may finish with gaps, and missing source state or events
+can block safe continuation. No live import is implied by this guide.
+
+Handoff ceilings are exposed as top-level environment settings: `BOT_HANDOFF_MAX_DEPTH` defaults to
+`1` (`0` disables handoffs), and `BOT_HANDOFF_MAX_PER_RUN` defaults to `3`. The chart's
+`config.handoff.maxDepth` and `config.handoff.maxPerRun` values set those variables; excess work is
+refused rather than truncated.
 
 ## The five targets
 

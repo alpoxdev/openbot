@@ -19,9 +19,6 @@
 # single-zone test.
 config:
   initialAdminEmails: admin@example.com
-  intelligence:
-    apiUrl: https://api.intelligence.copilotkit.ai
-    gatewayWsUrl: wss://realtime.intelligence.copilotkit.ai
   auth:
     google:
       clientId: example.apps.googleusercontent.com
@@ -46,18 +43,12 @@ externalSecrets:
     - secretKey: better-auth-secret
       remoteRef:
         key: openbot-better-auth-secret
-    - secretKey: intelligence-api-key
-      remoteRef:
-        key: openbot/intelligence-api-key
     - secretKey: google-client-secret
       remoteRef:
         key: openbot/google-client-secret
     - secretKey: computer-token
       remoteRef:
         key: openbot/computer-token
-    - secretKey: license-token
-      remoteRef:
-        key: openbot/license-token
 ingress:
   enabled: true
   className: alb

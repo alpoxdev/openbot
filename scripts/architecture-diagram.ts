@@ -321,7 +321,7 @@ function render(t: Theme): string {
     weight: 700,
     fill: t.ink,
   });
-  text(svX + 22, svY + 58, "CopilotKit runtime, auth, roles, coworkers", {
+  text(svX + 22, svY + 58, "public SSE, auth, roles, coworkers", {
     size: 13,
     fill: t.muted,
   });
@@ -421,23 +421,23 @@ function render(t: Theme): string {
   lines(
     dbX + 18,
     dbY + 58,
-    ["the audit trail", "policy, grants", "credentials, encrypted"],
+    ["full transcripts", "audit · policy · grants", "credentials, encrypted"],
     t,
     12.5,
     19,
   );
 
-  const intX = 622;
-  box(intX, dbY, 226, 118, t, { stroke: t.ink });
-  text(intX + 18, dbY + 32, "CopilotKit Intelligence", {
+  const importX = 622;
+  box(importX, dbY, 226, 118, t, { stroke: t.bring, dashed: true });
+  text(importX + 18, dbY + 32, "old source (optional)", {
     size: 14.5,
     weight: 650,
-    fill: t.ink,
+    fill: t.bring,
   });
   lines(
-    intX + 18,
+    importX + 18,
     dbY + 58,
-    ["durable threads", "memory", "external service"],
+    ["explicit import", "scoped GET only", "read-only · no fallback"],
     t,
     12.5,
     19,
@@ -446,7 +446,7 @@ function render(t: Theme): string {
   // ---- the wiring --------------------------------------------------------
   // you -> server, and the answer back
   arrow(youX + youW + 6, youY + 76, svX - 8, youY + 76, { colour: t.ink });
-  label((youX + youW + svX) / 2, youY + 62, "a turn", t.muted);
+  label((youX + youW + svX) / 2, youY + 62, "public SSE", t.muted);
   arrow(svX - 8, youY + 132, youX + youW + 6, youY + 132, {
     colour: t.ink,
     dashed: true,
@@ -510,12 +510,12 @@ function render(t: Theme): string {
   });
   label(gX + 72, (svY + svH + dbY) / 2 + 4, "always", t.gate, "end");
 
-  // threads and memory, both ways
-  arrow(intX + 113, svY + svH + 8, intX + 113, dbY - 8, {
-    colour: t.ink,
+  // An explicit, scoped import is the only path from an old source into local history.
+  arrow(importX + 113, dbY - 8, importX + 113, svY + svH + 8, {
+    colour: t.bring,
     dashed: true,
-    tailHead: true,
   });
+  label(importX + 132, (svY + svH + dbY) / 2 + 4, "optional", t.bring, "start");
 
   // the supervisor builds each computer
   arrow(supX + 150, supY - 8, cX + 150, cY + 2 * 100 + 92, {
@@ -531,8 +531,9 @@ function render(t: Theme): string {
       `the Bot makes returns through the gateway, which resolves the target, decides it against the ` +
       `configured policy, records an audit row, and only then acts, or refuses and names the rule. ` +
       `Allowed actions reach that Bot's own computer, one container each holding its own Chromium, ` +
-      `logins and workspace, created by the supervisor. Every decision lands in PostgreSQL; threads ` +
-      `and memory live in CopilotKit Intelligence.</desc>`,
+      `logins and workspace, created by the supervisor. Full user, assistant and tool transcripts, ` +
+      `their order, and every decision land in PostgreSQL. An optional explicit old-source import ` +
+      `uses scoped GET requests only; there is no cloud history fallback.</desc>`,
     ...out,
     `</svg>`,
   ].join("\n");

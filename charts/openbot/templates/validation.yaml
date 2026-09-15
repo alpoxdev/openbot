@@ -67,20 +67,6 @@ This template renders nothing.
 {{- end }}
 
 {{- /*
-  Intelligence, which is not optional.
-
-  The three addressing values are required together and the server refuses to start on a partial
-  set, so the same rule is applied here: caught at install with the values named, rather than in a
-  crash loop whose message is in a log nobody has opened.
-
-  `secrets.licenseToken` is NOT among them. Managed Intelligence issues no licence token, so
-  requiring one here would block an install the server would have accepted.
-*/}}
-{{- if or (not .Values.config.intelligence.apiUrl) (not .Values.config.intelligence.gatewayWsUrl) }}
-{{- fail "OpenBot requires CopilotKit Intelligence. Set config.intelligence.apiUrl and config.intelligence.gatewayWsUrl, and the matching secrets.intelligenceApiKey." }}
-{{- end }}
-
-{{- /*
   A computer nobody can reach, or one anybody can.
 
   `agent-computer` refuses every request without `COMPUTER_TOKEN` and permits only `/health`, so a

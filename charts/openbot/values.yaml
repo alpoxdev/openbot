@@ -136,13 +136,6 @@ config:
       clientId: ""
   tenantPackageDir: /app/examples/fintech
 
-  # CopilotKit Intelligence, which OpenBot requires. All four values are needed together: the server
-  # refuses to start on a partial set, deliberately, because a half-configured Intelligence is a
-  # mistake somebody made rather than a deployment that meant to run without one.
-  intelligence:
-    apiUrl: ""
-    gatewayWsUrl: ""
-    # The two secret halves live under `secrets` below, never here.
   # How far one Bot may hand work to another.
   #
   # A Bot addressing another is a grant an administrator makes, and these are the ceilings on what
@@ -392,13 +385,6 @@ secrets:
   modelApiKey: ""
   computerToken: ""
   supervisorToken: ""
-  # From the CopilotKit CLI: `npx --yes copilotkit@latest project select` prints the runtime key.
-  # The chart refuses to install without it, because there is no mode where this runs with
-  # Intelligence missing.
-  intelligenceApiKey: ""
-  # Optional. Managed Intelligence issues no licence token; set this only for a self-hosted
-  # Intelligence that has one, and it is passed to the server as COPILOTKIT_LICENSE_TOKEN.
-  licenseToken: ""
   # Sent to `config.managedAgent.url` on every call. Required when that url is set.
   managedAgentToken: ""
   # Required when `routines.enabled`: what the CronJob presents to the API server to be recognised

@@ -1,0 +1,28 @@
+^D==> Linting charts/openbot
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+11 objects, 9 secret keys demanded, and every required one is written. 1 optional key was not checked.
+==> Linting charts/openbot
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+12 objects, 9 secret keys demanded, and every required one is written. 1 optional key was not checked.
+level=INFO msg="funcMap fail" message="computers.mode is sandbox, which gives every Bot its own computer, but this cluster has no Sandbox CRD. Install the controller first:\n\n  kubectl apply --server-side -f https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v0.5.6/sandbox-with-extensions.yaml\n\nOr use computers.mode: shared, which needs nothing installed. Rendering without a cluster? Pass --api-versions agents.x-k8s.io/v1beta1/Sandbox, or set computers.sandbox.requireController=false."
+==> Linting charts/openbot
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+18 objects, 14 secret keys demanded, and every required one is written. The server's egress reaches 443. 2 optional keys were not checked.
+==> Linting charts/openbot
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+11 objects, 9 secret keys demanded, and every required one is written. 1 optional key was not checked.
+level=WARN msg="missing required values" message="secrets.keyEncryptionKey is required unless secrets.existingSecret or externalSecrets is used. Generate one with: openssl rand -base64 32"
+==> Linting charts/openbot
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+23 objects, 17 secret keys demanded, and every required one is written. The server's egress reaches 443. 2 optional keys were not checked.
+G001_CHART_FIXTURES=5 PASS OFFLINE_CI_CAPABILITIES

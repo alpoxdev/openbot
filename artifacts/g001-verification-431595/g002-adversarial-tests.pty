@@ -1,0 +1,313 @@
+^D[0m[1mbun test [0m[2mv1.4.0 (34cbb9a40)[0m
+[0m
+app/tests/imported-history.test.tsx:
+[0m[32m✓[0m[0m[1m lists stored conversations from this server and renders message and tool text without executing[0m [0m[2m[[1m29.19ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m records canonical media references without fetching or claiming file bytes[0m [0m[2m[9.60ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m keeps canonical history-only records in an escaped expandable details view[0m [0m[2m[[1m22.12ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a deleted-agent history remains readable without live handover[0m [0m[2m[9.16ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m import pending disables live handover copy[0m [0m[2m[7.76ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m history with no surviving agent id is still readable without an agent query[0m [0m[2m[7.09ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m deep-link selection is limited to a listed thread and reports user selection[0m [0m[2m[[1m14.22ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m an unauthorized deep-link is reported instead of selecting another thread[0m [0m[2m[7.35ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m an authorized deep-link outside the first page reads before loading more[0m [0m[2m[[1m15.05ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m loads bounded history pages, keeps selected records, and deduplicates thread ids[0m [0m[2m[[1m16.43ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a failed next page keeps prior history and shows a failure notice[0m [0m[2m[[1m14.49ms[0m[2m][0m
+[0m
+app/tests/bot-thread.test.ts:
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m is the same key for the same agent every time[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m is namespaced rather than the bare agent id[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m two agents never collide[0m [0m[2m[0.01ms[0m[2m][0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m archive pointer is a separate key[0m [0m[2m[0.01ms[0m[2m][0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered local thread is kept[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered unavailable id is held, not reminted[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered notfound id is held, not reminted[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a failed lookup does not replace the remembered id[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m with no browser pointer, the newest server conversation is restored[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a failed server list does not mint an empty thread[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a confirmed empty history may mint[0m
+[0m[32m✓[0m [0mliveHandoverAllowed[2m >[0m[1m import pending and history-only disable live handover[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mparseConversationThreadRecord[2m >[0m[1m rejects a body without status rather than inventing known[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mmintConversationThread[2m >[0m[1m posts agentId and returns the server thread id[0m [0m[2m[0.25ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m picks the newest eligible server row[0m [0m[2m[0.17ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m does not restore a row with no or another agent[0m [0m[2m[0.09ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a failed list is unavailable rather than empty[0m [0m[2m[0.05ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a malformed list is unavailable rather than empty[0m [0m[2m[0.05ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a response without nextCursor is unavailable rather than empty[0m [0m[2m[0.04ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a valid empty page with a null cursor remains empty history[0m [0m[2m[0.21ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a wrong-channel row contradicting directOnly is unavailable[0m [0m[2m[0.09ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m an oversized direct page contradicting limit one is unavailable[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m stale agent mint cannot replace the current thread or clear its mint gate[0m [0m[2m[[1m110.60ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m New shares a pending initial resolution mint instead of orphaning a second thread[0m [0m[2m[4.89ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a failed explicit New mint lets empty-history recovery retry once[0m [0m[2m[[1m58.66ms[0m[2m][0m
+[0m
+server/tests/conversation-import-source.test.ts:
+[0m[32m✓[0m [0mresolveImportSourceOrigin[2m >[0m[1m accepts HTTPS and rejects credentialed or private URLs[0m [0m[2m[0.20ms[0m[2m][0m
+[0m[32m✓[0m [0mresolveImportSourceOrigin[2m >[0m[1m allowHttp does not grant private hosts[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mlistThreads paging[2m >[0m[1m sends user, agent, archived, limit and cursor query params and drops join tokens[0m [0m[2m[2.49ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m uses GET /api/threads/:id?userId= and treats 404 as a gap[0m [0m[2m[0.25ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m messages path has no pagination and empty array is success[0m [0m[2m[0.23ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m preserves unrecognized message fields and does not log raw content[0m [0m[2m[0.34ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m preserves raw tool calls, including extensions, structured arguments, and malformed calls[0m [0m[2m[0.14ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m getThread requires the installed { thread } envelope[0m [0m[2m[0.37ms[0m[2m][0m
+[0m[32m✓[0m [0mgetThread and messages[2m >[0m[1m getThread rejects a response for a different scoped thread[0m [0m[2m[0.10ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m aborts when the caller signal fires[0m [0m[2m[0.09ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m times out bounded reads[0m [0m[2m[5.24ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m classifies a mid-body stream fault as transient and retries with a sanitized error[0m [0m[2m[0.38ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m classifies a mid-body caller abort as cancelled[0m [0m[2m[0.14ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m classifies a mid-body timeout as timeout[0m [0m[2m[5.11ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m rejects oversized bodies without treating them as empty success[0m [0m[2m[0.15ms[0m[2m][0m
+[0m[32m✓[0m [0mbounds and cancellation[2m >[0m[1m refuses NaN and negative transport bounds[0m [0m[2m[0.05ms[0m[2m][0m
+[0m[32m✓[0m [0mresolved source addresses[2m >[0m[1m rejects a public source hostname resolving to a private address before sending credentials[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mresolved source addresses[2m >[0m[1m fails closed when source hostname resolution fails without exposing lookup details[0m [0m[2m[0.10ms[0m[2m][0m
+[0m[32m✓[0m [0mresolved source addresses[2m >[0m[1m pins the validated address while retaining the source Host header[0m [0m[2m[[1m14.63ms[0m[2m][0m
+[0m[32m✓[0m [0merror redaction and retries[2m >[0m[1m does not surface raw bodies or bearer keys in failure messages[0m [0m[2m[0.34ms[0m[2m][0m
+[0m[32m✓[0m [0merror redaction and retries[2m >[0m[1m retries 503 using bounded Retry-After[0m [0m[2m[0.34ms[0m[2m][0m
+[0m[32m✓[0m [0merror redaction and retries[2m >[0m[1m retries 429 using bounded Retry-After[0m [0m[2m[0.17ms[0m[2m][0m
+[0m[32m✓[0m [0merror redaction and retries[2m >[0m[1m caps Retry-After at ten seconds[0m [0m[2m[0.14ms[0m[2m][0m
+[0m[32m✓[0m [0msource observations[2m >[0m[1m reports bounded retry, status, latency, and hashed job correlation[0m [0m[2m[0.48ms[0m[2m][0m
+[0m[32m✓[0m [0msource observations[2m >[0m[1m keeps source observations free of source secrets and payload metadata[0m [0m[2m[0.57ms[0m[2m][0m
+[0m[32m✓[0m [0msource observations[2m >[0m[1m a throwing observer cannot change the source response[0m [0m[2m[0.16ms[0m[2m][0m
+[0m[32m✓[0m [0mforeign redirects[2m >[0m[1m refuses a different origin and never forwards the key[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mforeign redirects[2m >[0m[1m refuses manual redirects across host, port, or scheme: http://intelligence.example.test/changed-scheme[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m [0mforeign redirects[2m >[0m[1m refuses manual redirects across host, port, or scheme: https://intelligence.example.test:444/changed-port[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mforeign redirects[2m >[0m[1m refuses manual redirects across host, port, or scheme: https://evil.example/changed-host[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mforeign redirects[2m >[0m[1m refuses a same-origin redirect chain once a later hop changes its port[0m [0m[2m[0.25ms[0m[2m][0m
+[0m[32m✓[0m [0moptional debug resources[2m >[0m[1m events truncated and decode gaps stay explicit[0m [0m[2m[0.56ms[0m[2m][0m
+[0m[32m✓[0m [0moptional debug resources[2m >[0m[1m state variants remain discriminated[0m [0m[2m[0.38ms[0m[2m][0m
+[0m[32m✓[0m [0moptional debug resources[2m >[0m[1m missing debug endpoint is a gap, not empty success[0m [0m[2m[0.10ms[0m[2m][0m
+[0m
+server/tests/conversation-import-store.integration.test.ts:
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m keeps a database lease active when the application clock jumps ahead[0m [0m[2m[[1m47.62ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m admits only one concurrent attempt for a job[0m [0m[2m[[1m19.48ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m reclaims an expired run attempt without losing its approval[0m [0m[2m[[1m65.61ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m pauses incomplete inventory and leaves it unapprovable[0m [0m[2m[[1m228.32ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m scopes jobs to the requesting admin and refuses a different admin[0m [0m[2m[9.13ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m does not persist source credentials on the job row[0m [0m[2m[6.93ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m inventories mapped vs unmapped threads without treating the admin as owner[0m [0m[2m[[1m85.91ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m blocks identity conflicts on the same source thread[0m [0m[2m[[1m86.43ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m detects cursor cycles and does not claim completeness[0m [0m[2m[[1m88.06ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m probes mapped thread ids absent from list pages[0m [0m[2m[[1m62.09ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m empty list page with a distinct next cursor continues[0m [0m[2m[[1m59.00ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m waits for page checkpoint persistence before requesting the next page[0m [0m[2m[[1m13.05ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m rejects inventory when checkpoint persistence fails[0m [0m[2m[[1m12.01ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m second-page failure keeps first-page items for resume[0m [0m[2m[[1m87.01ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m explicit unowned id is blocked and does not adopt the admin[0m [0m[2m[[1m53.32ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m approves a matching manifest hash and cancels without deleting staged rows[0m [0m[2m[[1m35.46ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m reinventory gets a fresh revision even when count and metadata are unchanged[0m [0m[2m[[1m96.11ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m refuses confirmation while inventory is in progress[0m [0m[2m[[1m123.32ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m encrypts resources with job/item domain binding and omits keys from ciphertext JSON[0m [0m[2m[[1m75.87ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m fences stale attempts from progress, item, publication, and phase writes[0m [0m[2m[[1m97.64ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation import store[2m >[0m[1m observes committed inventory progress without exposing source identifiers[0m [0m[2m[[1m64.67ms[0m[2m][0m
+[0m
+server/tests/thread-routes.test.ts:
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m registers owner and bot before returning an immediately readable local ID[0m [0m[2m[2.17ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m rejects missing bot selection: [0m [0m[2m[0.33ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m rejects missing bot selection: {}[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m rejects missing bot selection: {"agentId":""}[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m rejects missing bot selection: null[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m rejects missing bot selection: [][0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m denies a bot that the authenticated actor cannot use[0m [0m[2m[0.23ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m a failed commit returns no minted ID[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m anonymous requests reach neither mint nor status storage[0m [0m[2m[0.16ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m does not claim old missing history is deleted or mint a replacement[0m [0m[2m[0.16ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m looks up an owned opaque persisted ID without a UUID gate[0m [0m[2m[0.17ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m denies a foreign opaque ID through the authenticated store lookup[0m [0m[2m[0.11ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m unknown opaque IDs remain unavailable without adoption[0m [0m[2m[0.14ms[0m[2m][0m
+[0m[32m✓[0m [0mpersisted direct thread identities[2m >[0m[1m status outage stays a redacted failure rather than a missing-history response[0m [0m[2m[0.12ms[0m[2m][0m
+[0m
+server/tests/conversation-routes.test.ts:
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m unauthenticated list and reads are 401[0m [0m[2m[5.87ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m foreign or guessed ids are 404, not empty history[0m [0m[2m[0.82ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m store failure is 502, empty local list is 200[0m [0m[2m[0.83ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m lists one bounded metadata page without reading snapshots[0m [0m[2m[0.41ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m rejects malformed thread list query parameters[0m [0m[2m[0.32ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m returns a client error for a malformed opaque cursor[0m [0m[2m[0.33ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m unknown suffixes including clear are 404 after auth[0m [0m[2m[0.31ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m owned thread routes do not swallow the runtime dispatcher[0m [0m[2m[0.31ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mowned conversation HTTP[2m >[0m[1m durable capabilities require a successful full-store readiness probe[0m [0m[2m[0.38ms[0m[2m][0m
+[0m
+server/tests/conversation-import.e2e.test.ts:
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mconversation import through the real store, engine, and SSE runtime[2m >[0m[1m imports scoped structured history, reloads it, and isolates concurrent public-agent runs[0m [0m[2m[[1m670.54ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mconversation import through the real store, engine, and SSE runtime[2m >[0m[1m mounted routes bind to the canonical channel agent while the engine keeps member grants[0m [0m[2m[[1m502.12ms[0m[2m][0m
+[0m
+server/tests/conversation-process.integration.test.ts:
+[0m[32m✓[0m [0mconversation process death durability[2m >[0m[1m reconnects a killed owner without replaying committed model or tool work[0m [0m[2m[[1m2239.53ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation process death durability[2m >[0m[1m reclaims a killed importer after encrypted staging and publishes exactly once[0m [0m[2m[[1m655.62ms[0m[2m][0m
+[0m
+server/tests/thread-status.test.ts:
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m preserves ready readiness instead of treating it as empty[0m [0m[2m[0.09ms[0m[2m][0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m preserves history_only readiness instead of treating it as empty[0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m preserves not_ready readiness instead of treating it as empty[0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m missing and foreign records have indistinguishable unavailable responses[0m [0m[2m[0.06ms[0m[2m][0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m missing and foreign records have indistinguishable unavailable responses[0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m database failures remain failures, never evidence that a remembered ID is gone[0m [0m[2m[0.05ms[0m[2m][0m
+[0m[32m✓[0m [0mserver conversation availability[2m >[0m[1m uses the authenticated owner and exact historical identifier[0m [0m[2m[0.05ms[0m[2m][0m
+[0m
+server/tests/conversation-store.integration.test.ts:
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m mint commits an authorized empty baseline and refuses private or deleted bots[0m [0m[2m[[1m76.65ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m creates a thread, publishes a baseline, and projects the committed tail[0m [0m[2m[[1m62.29ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m rejects a duplicate thread id and does not re-execute a duplicate run id[0m [0m[2m[[1m46.32ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m foreign actors and revoked owners cannot read or run[0m [0m[2m[[1m31.02ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m an actor without a live role cannot read an existing thread[0m [0m[2m[[1m35.45ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m visibility and role changes are rechecked for existing channel threads[0m [0m[2m[[1m89.05ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m a channel can run a different member bot without granting unrelated bots access[0m [0m[2m[[1m56.44ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m channel-bound history requires live membership; deleted channel is none[0m [0m[2m[[1m56.30ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m lists bounded previews with deterministic cursors and live ACL filters[0m [0m[2m[[1m114.46ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m expired lease cannot append or finish after an explicit SQL expiry[0m [0m[2m[[1m42.63ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation store[2m >[0m[1m refuses a second baseline publish and stop/finish remain fenced[0m [0m[2m[[1m43.32ms[0m[2m][0m
+[0m
+server/tests/conversation-runner.integration.test.ts:
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m refuses provider output that mutates accepted history: text[0m [0m[2m[[1m191.51ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m refuses provider output that mutates accepted history: activity[0m [0m[2m[[1m198.10ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m refuses provider output that mutates accepted history: tool parent[0m [0m[2m[[1m147.22ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m refuses provider output that mutates accepted history: tool identity[0m [0m[2m[[1m132.71ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m refuses provider output that mutates accepted history: completed tool result[0m [0m[2m[[1m142.96ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m busy notifications follow actual execution and cannot fail a persisted turn[0m [0m[2m[[1m109.09ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m a pending historical tool can receive its first result without rewriting its call[0m [0m[2m[[1m134.67ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m first observed event is RUN_STARTED and user structured content survives[0m [0m[2m[[1m62.27ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m A/B isolation, duplicate runId does not execute twice[0m [0m[2m[[1m92.70ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m channel member runs remain engine-authorized without changing the canonical thread agent[0m [0m[2m[[1m102.31ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m a delayed Stop stays pinned to A1 and cannot stop A2 or another actor's B run[0m [0m[2m[[1m205.74ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m explicit Stop tears down the fixture agent and terminates the run[0m [0m[2m[[1m147.47ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m abortRun cancels a start blocked before acquisition[0m [0m[2m[[1m57.04ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m abortRun cancels a start after acquisition but before initial publish[0m [0m[2m[[1m53.62ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m cancel after acquisition survives a revoked gated snapshot with a durable terminal error[0m [0m[2m[[1m37.92ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m canceling one pending run does not cancel a later run on the same thread[0m [0m[2m[[1m93.72ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m disconnect does not cancel the accepted run; a new engine.connect restores messages[0m [0m[2m[[1m537.74ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m a fresh engine reconnect reports a durably reaped partial run as interrupted[0m [0m[2m[[1m39.07ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m fresh reconnect replays persisted failed and stopped terminal errors[0m [0m[2m[[1m57.32ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m revocation durably fails an active run and releases its lease[0m [0m[2m[[1m48.60ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m rejects an orphan tool result embedded in a messages snapshot[0m [0m[2m[[1m49.96ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m rejects provider terminal events with foreign execution identifiers[0m [0m[2m[[1m45.45ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m forged tool result without a pending call is rejected[0m [0m[2m[[1m44.39ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m persistedInputMessages [] keeps model context off the transcript but on the agent[0m [0m[2m[[1m64.79ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m emits redacted runtime observations for durable commit, replay, and active runs[0m [0m[2m[[1m142.29ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m labels stop request and terminal settlement without exposing provider text[0m [0m[2m[[1m73.89ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation engine + actorBoundRunner[2m >[0m[1m classifies generic producer failures as unknown rather than persistence[0m [0m[2m[[1m62.57ms[0m[2m][0m
+[0m
+server/tests/conversation-importer.integration.test.ts:
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m captures, publishes, and reads back offline; retry is unchanged[0m [0m[2m[[1m152.18ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m cross-job same-source races publish once and mark the loser unchanged[0m [0m[2m[[1m181.43ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m source-changed second read does not overwrite[0m [0m[2m[[1m79.03ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m fetched agent disagreement is quarantined instead of publishing under inventory agent[0m [0m[2m[[1m77.11ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m missing fetched agent metadata remains a history-only import[0m [0m[2m[[1m113.66ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m organization disagreement across capture reads fails before publication[0m [0m[2m[[1m80.21ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m contradictory source query user cannot justify publication to mapped owner[0m [0m[2m[[1m111.26ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m reinventory clears a stale approval and rejects the old manifest hash[0m [0m[2m[[1m113.45ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m owner B cannot read owner A imported history[0m [0m[2m[[1m109.34ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m cancel before publish leaves no new destination thread[0m [0m[2m[[1m71.92ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m all blocked inventory completes with gaps, not success[0m [0m[2m[[1m67.87ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m missing events and state remain explicit gaps after publish[0m [0m[2m[[1m94.20ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m opaque source state is encrypted evidence, not runnable local state, and retry retains the gap[0m [0m[2m[[1m117.77ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m skipped-delta state diagnostics stay out of plaintext coverage[0m [0m[2m[[1m90.88ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m mapping with another origin or owner is a destination conflict[0m [0m[2m[[1m107.52ms[0m[2m][0m
+[0m[32m✓[0m [0mconversation importer[2m >[0m[1m cancel during importing is not overwritten by a later phase write[0m [0m[2m[[1m72.19ms[0m[2m][0m
+[0m
+server/tests/copilot.test.ts:
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m desktop-selected BOT_MODEL drives the built-in default agent model[0m [0m[2m[[1m46.44ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m explicit OpenAI provider still uses the OpenAI-compatible selected model[0m [0m[2m[[1m14.01ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m package default remains the model without a compatible endpoint selection: {}[0m [0m[2m[[1m11.35ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m package default remains the model without a compatible endpoint selection: {"OPENAI_BASE_URL":"http://127.0.0.1:11434/v1","BOT_MODEL":"   "}[0m [0m[2m[[1m11.23ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m package default remains the model without a compatible endpoint selection: {"BOT_MODEL":"selected-local-model"}[0m [0m[2m[[1m11.15ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0mdeployment model selection[2m >[0m[1m package default remains the model without a compatible endpoint selection: {"BOT_PROVIDER":"anthropic","BOT_MODEL":"claude-sonnet-4-5"}[0m [0m[2m[[1m10.85ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m normalizes built-in and remote rows[0m [0m[2m[0.18ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m rejects malformed agent configurations[0m [0m[2m[0.06ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m trims built-in prompts and preserves valid remote endpoint strings[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m configures an OpenAI built-in agent[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m fails an unavailable built-in agent through the AG-UI lifecycle[0m [0m[2m[0.87ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m constructs built-in and remote agents together[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m hands a remote Bot's fetch to the stall guard, and a built-in Bot none[0m [0m[2m[0.12ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m dials a remote Bot with the fetch it was given, guarded or not[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m carries the dialling fetch through resolveRuntimeAgents[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m leaves a remote Bot's fetch alone when no timeout is configured[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m resolves fresh built-in agents and credentials for every request[0m [0m[2m[0.29ms[0m[2m][0m
+[0m[32m✓[0m [0mregistered Copilot agents[2m >[0m[1m does not resolve model credentials for remote-only agents[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m builds a stable, framework-neutral standing role message[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m sends one standing role message ahead of the conversation[0m [0m[2m[6.05ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m keeps the standing role out of forwarded props and agent state[0m [0m[2m[4.25ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m preserves the deleted coworker refusal through runtime clones without network calls[0m [0m[2m[0.48ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m resolves agents per request from the requesting actor[0m [0m[2m[0.15ms[0m[2m][0m
+[0m[32m✓[0m [0mstanding agent roles[2m >[0m[1m rebuilds each agent from the loader so an edited role applies to the next run[0m [0m[2m[4.61ms[0m[2m][0m
+[0m[32m✓[0m [0mconnected-vendor lookup diagnostics[2m >[0m[1m reports a failed lookup once for the roster and still completes the run[0m [0m[2m[3.87ms[0m[2m][0m
+[0m[32m✓[0m [0mconnected-vendor lookup diagnostics[2m >[0m[1m a successful vendor lookup stays quiet: %j[0m [0m[2m[3.97ms[0m[2m][0m
+[0m[32m✓[0m [0mconnected-vendor lookup diagnostics[2m >[0m[1m a successful vendor lookup stays quiet: "google-drive"[0m [0m[2m[3.69ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m names the system and its tools[0m [0m[2m[0.08ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m says not to browse to a vendor it has a tool for[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m says a gap in what it holds is a grant to ask for, not a wall to climb[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m names a connected vendor it holds nothing for, so it can say which[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m does not name a vendor it does hold as one it does not[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m says nothing at all when the Bot holds nothing[0m [0m[2m[0.04ms[0m[2m][0m
+[0m[32m✓[0m [0mwhat a Bot is told it holds[2m >[0m[1m a built-in Bot is told before it is told about the browser[0m [0m[2m[0.10ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere a Bot says its answer came from[2m >[0m[1m a built-in Bot carries the rule even holding nothing at all[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere a Bot says its answer came from[2m >[0m[1m a remote Bot carries it in the only instruction it ever gets[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere a Bot says its answer came from[2m >[0m[1m it does not send the Bot hunting for a source[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere a Bot says its answer came from[2m >[0m[1m it names the answers that must not be stated without a source[0m [0m[2m[0.04ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m carries the block, its precedence sentence, and the person's own words[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m sits after the role and before everything the deployment adds[0m [0m[2m[0.06ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m adds nothing at all when there are none: null[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m adds nothing at all when there are none: [0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m adds nothing at all when there are none: ""[0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m adds nothing at all when there are none: "   \n  "[0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m is read once for a whole roster, and only when somebody built-in will be told it[0m [0m[2m[0.17ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m never reaches a Bot at somebody else's endpoint[0m [0m[2m[0.01ms[0m[2m][0m
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m reports a failed instruction read once and still completes a built-in run[0m [0m[2m[9.79ms[0m[2m][0m
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m a successful instruction read stays quiet and private: null[0m [0m[2m[[1m10.91ms[0m[2m][0m
+AI SDK Warning: System messages in the prompt or messages fields can be a security risk because they may enable prompt injection attacks. Use the system option instead when possible. Set allowSystemInMessages to true to suppress this warning, or false to throw an error.
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m a successful instruction read stays quiet and private: "Write in British English."[0m [0m[2m[[1m10.54ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m a remote-only roster never reads or diagnoses personal instructions[0m [0m[2m[4.61ms[0m[2m][0m
+[0m[32m✓[0m [0ma person's standing instructions[2m >[0m[1m is resolved for whoever the request turned out to be[0m [0m[2m[0.20ms[0m[2m][0m
+[0m[32m✓[0m [0ma chat turn is not sent a conversation the model API refuses[2m >[0m[1m the unanswerable call is gone from what the run converts[0m [0m[2m[0.22ms[0m[2m][0m
+[0m[32m✓[0m [0ma chat turn is not sent a conversation the model API refuses[2m >[0m[1m the clone the runtime runs guards it too[0m [0m[2m[0.11ms[0m[2m][0m
+[0m[32m✓[0m [0ma chat turn is not sent a conversation the model API refuses[2m >[0m[1m a call the run is about to resume is kept[0m [0m[2m[0.10ms[0m[2m][0m
+[0m[32m✓[0m [0ma chat turn is not sent a conversation the model API refuses[2m >[0m[1m a remote Bot is not sent the unanswerable call either[0m [0m[2m[4.11ms[0m[2m][0m
+[0m[32m✓[0m [0ma chat turn is not sent a conversation the model API refuses[2m >[0m[1m the narrowed path is guarded, because it builds its agent the same way[0m [0m[2m[1.01ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a built-in Bot's run fails naming the attachment it could not load[0m [0m[2m[0.60ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a remote Bot's run fails naming the attachment it could not load[0m [0m[2m[0.30ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m the narrowed built-in path reads the attachment once, not twice[0m [0m[2m[0.38ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m an attachment that vanished from an older message becomes a note[0m [0m[2m[0.16ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m the message being asked about still fails, history behind it or not[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m the message being asked about is marked as sent, and the history behind it is not[0m [0m[2m[0.11ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a history load that fails leaves nothing stamped as sent[0m [0m[2m[0.12ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a message naming more bytes than a turn may inline refuses the turn[0m [0m[2m[5.68ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m the run's own thread is what both attachment seams are asked about[0m [0m[2m[0.27ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a send that could not be recorded refuses the turn before the model sees it[0m [0m[2m[0.33ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m an implementation that throws synchronously still refuses with its own words[0m [0m[2m[0.14ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m a stored image on a document part reaches the model as an image[0m [0m[2m[0.13ms[0m[2m][0m
+[0m[32m✓[0m [0mwhere an attachment reaches the model, and where it deliberately does not[2m >[0m[1m the run's byte budget is spent newest-first, so it is the oldest history that is cut[0m [0m[2m[8.51ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mthe guarded CopilotKit dispatcher[2m >[0m[1m unauthenticated run, connect and stop never reach the engine[0m [0m[2m[0.60ms[0m[2m][0m
+KEY_ENCRYPTION_KEY is the example key from .env.example, which is public. Fine locally. Generate a real one before deploying: openssl rand -base64 32
+[0m[32m✓[0m [0mthe guarded CopilotKit dispatcher[2m >[0m[1m unknown and memory routes are not mounted[0m [0m[2m[0.12ms[0m[2m][0m
+
+[0m[32m 250 pass[0m
+[0m[2m 0 fail[0m
+ 1136 expect() calls
+Ran 250 tests across 13 files. [0m[2m[[1m13.15s[0m[2m][0m
+
+G002_ADVERSARIAL_EXIT=0

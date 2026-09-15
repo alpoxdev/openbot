@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-automation",
+  "tool": "browser_tool",
+  "status": "passed",
+  "actions": [
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T05:48:42.696Z",
+      "target": "http://127.0.0.1:53369/",
+      "status": "passed",
+      "description": "Reload current history with only message HTTP requests deliberately aborted"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T05:48:43.706Z",
+      "target": "Stored history error notice",
+      "selector": "body",
+      "expected": "These stored messages could not be read from this server.",
+      "status": "passed",
+      "description": "Transport failure is explicit, not an empty or cached transcript"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T05:48:43.716Z",
+      "target": "history-read-failure.png",
+      "selector": "html",
+      "status": "passed",
+      "description": "Real full-page browser error presentation"
+    },
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T05:48:43.750Z",
+      "target": "http://127.0.0.1:53369/",
+      "status": "passed",
+      "description": "Restore transport and recover all six PostgreSQL messages"
+    }
+  ],
+  "failedText": "These stored messages could not be read from this server.",
+  "recoveredText": "Full stored message records (6)",
+  "scope": "Real production ImportedHistory component in an isolated Chromium harness, real protected conversation routes and PostgreSQL, synthetic fixture session and records. No private import or deployment."
+}

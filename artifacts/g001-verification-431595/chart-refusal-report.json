@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "kind": "package-test-report",
+  "status": "passed",
+  "description": "CI chart refusal cases against synthetic render-only inputs; no cluster or deployment access",
+  "cases": [
+    {
+      "fixture": "aks",
+      "scenario": "managed agent without token",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "aks",
+      "scenario": "replicated embedded browser",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "aks",
+      "scenario": "blocked egress proxy",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks",
+      "scenario": "managed agent without token",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks",
+      "scenario": "replicated embedded browser",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks",
+      "scenario": "blocked egress proxy",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks-sandbox",
+      "scenario": "managed agent without token",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks-sandbox",
+      "scenario": "replicated embedded browser",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks-sandbox",
+      "scenario": "blocked egress proxy",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "eks-sandbox",
+      "scenario": "unclaimed warm pool",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "gke",
+      "scenario": "managed agent without token",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "gke",
+      "scenario": "replicated embedded browser",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "gke",
+      "scenario": "blocked egress proxy",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "self-hosted",
+      "scenario": "managed agent without token",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "self-hosted",
+      "scenario": "replicated embedded browser",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "self-hosted",
+      "scenario": "blocked egress proxy",
+      "exitCode": 1,
+      "status": "passed"
+    },
+    {
+      "fixture": "self-hosted",
+      "scenario": "public example encryption key",
+      "exitCode": 1,
+      "status": "passed"
+    }
+  ]
+}

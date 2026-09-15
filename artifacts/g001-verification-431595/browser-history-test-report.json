@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-history-test-report",
+  "tool": "browser_tool",
+  "status": "passed",
+  "surface": "web",
+  "url": "http://127.0.0.1:53369/",
+  "description": "Live Chromium exercised the current production ImportedHistory component, connected to the real OpenBot conversation routes, store, engine and isolated PostgreSQL acceptance database. Authentication uses explicitly synthetic owner/foreign session fixtures. No live user records, CopilotKit credentials, provider calls or deployment were used.",
+  "observations": [
+    {
+      "type": "navigate",
+      "target": "http://127.0.0.1:53369/",
+      "status": "passed",
+      "observed": "Stored conversations; read-only handover notice; six full stored records"
+    },
+    {
+      "type": "click",
+      "target": "account_free_lookup disclosure",
+      "status": "passed",
+      "observed": "Detailed fixture tool result: record fixture-42 is settled."
+    },
+    {
+      "type": "click",
+      "target": "Full stored message records (6)",
+      "status": "passed",
+      "observed": "All six canonical user/assistant/tool records are rendered in order"
+    },
+    {
+      "type": "assert",
+      "target": "Rendered full-record digest versus PostgreSQL readSnapshot digest",
+      "status": "passed",
+      "observed": "19f64f82c7b90c83f35378448d0ccd2e57878cb1b3073fe822f97a13ccccbaf1"
+    },
+    {
+      "type": "restart-server",
+      "target": "Dedicated Bun history fixture process",
+      "status": "passed",
+      "observed": { "httpStatus": 200, "restarted": true, "reseeded": false }
+    },
+    {
+      "type": "close-browser",
+      "target": "Puppeteer Browser.close()",
+      "status": "passed",
+      "observed": {
+        "closed": true,
+        "browserInstance": "2ff45091-fdc9-4eac-a0c9-eccb59760a2e"
+      }
+    },
+    {
+      "type": "open-browser",
+      "target": "New managed Chromium instance",
+      "status": "passed",
+      "observed": {
+        "browserInstance": "2610bc06-4746-43d4-912d-240a98aa07a1",
+        "localStorageKeys": [],
+        "recordCount": 6
+      }
+    },
+    {
+      "type": "assert",
+      "target": "Reopened full-record digest and network activity",
+      "status": "passed",
+      "observed": {
+        "digest": "19f64f82c7b90c83f35378448d0ccd2e57878cb1b3073fe822f97a13ccccbaf1",
+        "roles": [
+          "user",
+          "assistant",
+          "tool",
+          "assistant",
+          "user",
+          "assistant"
+        ],
+        "allRequestsGet": true,
+        "allRequestsLocal": true
+      }
+    },
+    {
+      "type": "change-fixture-actor-and-reload",
+      "target": "Foreign authenticated actor",
+      "status": "passed",
+      "observed": {
+        "ownerTranscriptVisible": false,
+        "guessedHistoryHttpStatus": 404,
+        "response": { "error": "Not found." }
+      }
+    },
+    {
+      "type": "change-fixture-actor-and-reload",
+      "target": "Anonymous actor",
+      "status": "passed",
+      "observed": {
+        "ownerTranscriptVisible": false,
+        "historyHttpStatus": 401,
+        "response": { "error": "Authentication required." },
+        "notice": "Stored conversations could not be loaded from this server."
+      }
+    },
+    {
+      "type": "restore-fixture-owner-and-reload",
+      "target": "Authorized owner",
+      "status": "passed",
+      "observed": "Full stored message records (6)"
+    }
+  ],
+  "screenshots": [
+    "history-before.png",
+    "history-after-restart.png",
+    "history-anonymous-denied.png"
+  ],
+  "limitations": [
+    "This mounts the real history component in an isolated browser harness rather than the complete application shell.",
+    "The account/session identities and transcript content are synthetic acceptance fixtures, not a private-history import.",
+    "Native desktop setup and full import control flow have separate test evidence.",
+    "The temporary browser bundle emitted a Bun directory-mismatch warning but rendered successfully after correcting the fixture's duplicate query-provider module import."
+  ]
+}

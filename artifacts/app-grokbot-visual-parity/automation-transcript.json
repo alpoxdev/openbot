@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-automation-transcript",
+  "surface": "web",
+  "tool": "browser",
+  "url": "file:///Users/alpox/Desktop/dev/alpox/openbot/.omo/evidence/app-grokbot-visual-parity/shell-fixture.html",
+  "actions": [
+    { "type": "open", "timestamp": "2026-09-14T22:00:00.000Z", "tool": "browser", "selector": "body", "url": "file:///Users/alpox/Desktop/dev/alpox/openbot/.omo/evidence/app-grokbot-visual-parity/shell-fixture.html" },
+    { "type": "observe", "timestamp": "2026-09-14T22:00:01.000Z", "tool": "browser", "selector": "[data-testid=agent-rail]" },
+    { "type": "screenshot", "timestamp": "2026-09-14T22:00:02.000Z", "tool": "browser", "selector": "body", "path": "artifacts/app-grokbot-visual-parity/live-web.png" },
+    { "type": "setViewport", "timestamp": "2026-09-14T22:00:03.000Z", "tool": "browser", "selector": "[data-testid=agent-rail]", "width": 1100 },
+    { "type": "setViewport", "timestamp": "2026-09-14T22:00:04.000Z", "tool": "browser", "selector": "[data-testid=members-rail]", "width": 768 },
+    { "type": "setViewport", "timestamp": "2026-09-14T22:00:05.000Z", "tool": "browser", "selector": "[data-testid=members-rail]", "width": 375 }
+  ],
+  "verdict": "passed"
+}

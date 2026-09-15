@@ -1,0 +1,124 @@
+{
+  "startedAt": "2026-09-15T09:09:54.600Z",
+  "actions": [
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:09:54.600Z",
+      "url": "http://127.0.0.1:52258/?thread=g002-live-431595-threadId",
+      "assertions": [
+        "50 first-page summaries",
+        "Authorized opaque-ID off-page deep link renders all6records before Show more",
+        "Server restarted without reseeding"
+      ],
+      "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229"
+    },
+    {
+      "type": "click",
+      "target": "Show more",
+      "timestamp": "2026-09-15T09:10:17.883Z",
+      "fault": "Abort only cursor page request",
+      "assertions": [
+        "Explicit next-page error",
+        "50 prior summaries retained",
+        "Selected6records remain available"
+      ]
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:11:04.329Z",
+      "after": "Show more retry and selected-record reload",
+      "assertions": [
+        "66 total summaries",
+        "No remaining cursor",
+        "Original full record digest unchanged"
+      ],
+      "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:11:04.516Z",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g002-history-after-pagination.png"
+    },
+    {
+      "type": "restart-server",
+      "timestamp": "2026-09-15T09:11:41.110Z",
+      "result": {
+        "restarted": true,
+        "reseeded": false
+      },
+      "storage": {
+        "localStorage": 0,
+        "sessionStorage": 0
+      }
+    },
+    {
+      "type": "restart-browser",
+      "timestamp": "2026-09-15T09:12:31.179Z",
+      "before": "f67f6bbd-b611-4b3a-928a-d2e727b1fade",
+      "after": "4754d3ed-5815-47d4-ae0f-84364cb010b6",
+      "assertions": [
+        "New Chromium browser instance",
+        "Empty localStorage",
+        "Same6canonical messages and digest before loading older index pages"
+      ],
+      "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:12:31.360Z",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g002-history-after-restart.png"
+    },
+    {
+      "type": "authorization",
+      "timestamp": "2026-09-15T09:13:08.332Z",
+      "actor": "foreign",
+      "status": 404,
+      "assertions": [
+        "No canonical message/tool records rendered",
+        "No fallback to another thread"
+      ]
+    },
+    {
+      "type": "authorization",
+      "timestamp": "2026-09-15T09:13:09.345Z",
+      "actor": "anonymous",
+      "status": 401,
+      "assertions": [
+        "No canonical message/tool records rendered",
+        "No fallback to another thread"
+      ]
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:13:09.388Z",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g002-history-anonymous-denied.png"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:52258/api/copilotkit/threads?limit=50&cursor=eyJ1cGRhdGVkQXQiOiIyMDI2LTA5LTE1VDA4OjU2OjMzLjY4MDc1NyswMDowMCIsImlkIjoiMDQyNjNlZDItNTBlZC04MmIyLWFhNTEtM2M4OGI1MzRlZmY5IiwiYWdlbnRJZCI6bnVsbCwiZGlyZWN0T25seSI6ZmFsc2V9"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:52258/api/copilotkit/threads?limit=50&cursor=eyJ1cGRhdGVkQXQiOiIyMDI2LTA5LTE1VDA4OjU2OjMzLjY4MDc1NyswMDowMCIsImlkIjoiMDQyNjNlZDItNTBlZC04MmIyLWFhNTEtM2M4OGI1MzRlZmY5IiwiYWdlbnRJZCI6bnVsbCwiZGlyZWN0T25seSI6ZmFsc2V9"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:52258/api/copilotkit/threads/g002-live-431595-threadId/messages?agentId=g002-live-431595-agentId"
+    }
+  ],
+  "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229",
+  "limitations": [
+    "Synthetic source and sessions; actual production ImportedHistory with PostgreSQL, not the full app shell."
+  ],
+  "beforeBrowser": "f67f6bbd-b611-4b3a-928a-d2e727b1fade",
+  "status": "passed",
+  "finishedAt": "2026-09-15T09:13:10.400Z",
+  "setup": {
+    "syntheticMinted": 65,
+    "totalOwnedThreads": 66,
+    "pageSizes": [50, 16],
+    "privateImport": false
+  }
+}

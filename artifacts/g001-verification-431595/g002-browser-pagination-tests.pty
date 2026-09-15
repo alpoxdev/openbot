@@ -1,0 +1,44 @@
+^D[0m[1mbun test [0m[2mv1.4.0 (34cbb9a40)[0m
+[0m
+app/tests/imported-history.test.tsx:
+[0m[32m✓[0m[0m[1m lists stored conversations from this server and renders message and tool text without executing[0m [0m[2m[[1m27.66ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m records canonical media references without fetching or claiming file bytes[0m [0m[2m[9.78ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m keeps canonical history-only records in an escaped expandable details view[0m [0m[2m[[1m21.45ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a deleted-agent history remains readable without live handover[0m [0m[2m[[1m10.84ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m import pending disables live handover copy[0m [0m[2m[7.41ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m history with no surviving agent id is still readable without an agent query[0m [0m[2m[6.40ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m deep-link selection is limited to a listed thread and reports user selection[0m [0m[2m[[1m13.70ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m an unauthorized deep-link is reported instead of selecting another thread[0m [0m[2m[4.67ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m loads bounded history pages, keeps selected records, and deduplicates thread ids[0m [0m[2m[[1m18.98ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a failed next page keeps prior history and shows a failure notice[0m [0m[2m[[1m14.11ms[0m[2m][0m
+[0m
+app/tests/bot-thread.test.ts:
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m is the same key for the same agent every time[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m is namespaced rather than the bare agent id[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m two agents never collide[0m
+[0m[32m✓[0m [0mbotThreadKey[2m >[0m[1m archive pointer is a separate key[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered local thread is kept[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered unavailable id is held, not reminted[0m [0m[2m[0.01ms[0m[2m][0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a remembered notfound id is held, not reminted[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a failed lookup does not replace the remembered id[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m with no browser pointer, the newest server conversation is restored[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a failed server list does not mint an empty thread[0m
+[0m[32m✓[0m [0mthreadToUse[2m >[0m[1m a confirmed empty history may mint[0m [0m[2m[0.01ms[0m[2m][0m
+[0m[32m✓[0m [0mliveHandoverAllowed[2m >[0m[1m import pending and history-only disable live handover[0m [0m[2m[0.02ms[0m[2m][0m
+[0m[32m✓[0m [0mparseConversationThreadRecord[2m >[0m[1m rejects a body without status rather than inventing known[0m [0m[2m[0.03ms[0m[2m][0m
+[0m[32m✓[0m [0mmintConversationThread[2m >[0m[1m posts agentId and returns the server thread id[0m [0m[2m[0.20ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m picks the newest eligible server row[0m [0m[2m[0.19ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m does not restore a row with no or another agent[0m [0m[2m[0.10ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a failed list is unavailable rather than empty[0m [0m[2m[0.06ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a malformed list is unavailable rather than empty[0m [0m[2m[0.06ms[0m[2m][0m
+[0m[32m✓[0m [0mmostRecentEligibleThread[2m >[0m[1m a response without nextCursor is unavailable rather than empty[0m [0m[2m[0.07ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m stale agent mint cannot replace the current thread or clear its mint gate[0m [0m[2m[[1m109.62ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m New shares a pending initial resolution mint instead of orphaning a second thread[0m [0m[2m[4.96ms[0m[2m][0m
+[0m[32m✓[0m[0m[1m a failed explicit New mint lets empty-history recovery retry once[0m [0m[2m[[1m58.62ms[0m[2m][0m
+
+[0m[32m 32 pass[0m
+[0m[2m 0 fail[0m
+ 84 expect() calls
+Ran 32 tests across 2 files. [0m[2m[[1m1197.00ms[0m[2m][0m
+
+G002_BROWSER_PAGINATION_EXIT=0

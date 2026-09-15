@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-automation",
+  "tool": "browser_tool",
+  "status": "passed",
+  "startedAt": "2026-09-15T09:48:43.635Z",
+  "actions": [
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:50:01.817Z",
+      "target": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "url": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "status": "passed",
+      "description": "Reload current production component after65real protected mints"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:50:01.817Z",
+      "target": "Protected off-page history",
+      "selector": "details > summary",
+      "expected": "Full stored message records (6),50summary rows,Show more",
+      "status": "passed",
+      "observed": {
+        "rows": 50,
+        "records": 6,
+        "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229"
+      }
+    },
+    {
+      "type": "click",
+      "timestamp": "2026-09-15T09:50:43.078Z",
+      "target": "Show more",
+      "selector": "text/Show more",
+      "status": "passed",
+      "description": "Only cursor-page request aborted; explicit error retains50summary rows and6selected records"
+    },
+    {
+      "type": "click",
+      "timestamp": "2026-09-15T09:50:43.133Z",
+      "target": "Show more",
+      "selector": "text/Show more",
+      "status": "passed",
+      "description": "Restored cursor transport; retry loads66unique summaries without changing canonical selected records"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:50:43.252Z",
+      "target": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-pagination.png",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-pagination.png",
+      "selector": "html",
+      "status": "passed",
+      "description": "Current66-row history and expanded canonical records after retry"
+    },
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:51:31.032Z",
+      "target": "http://127.0.0.1:58964/?thread=g003-missing-owned-scope",
+      "url": "http://127.0.0.1:58964/?thread=g003-missing-owned-scope",
+      "status": "passed",
+      "description": "Unknown explicit opaque ID with nonempty owned index"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:51:31.032Z",
+      "target": "Unavailable selection without second read",
+      "selector": "[role=alert]",
+      "expected": "This conversation is not available in your stored history.",
+      "status": "passed",
+      "observed": {
+        "httpStatus": 200,
+        "status": "external_unavailable",
+        "summaryRows": 50,
+        "messageRequests": 0
+      }
+    },
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:51:32.038Z",
+      "target": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "url": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "status": "passed",
+      "description": "Foreign synthetic actor, empty authorized index, guessed owner ID"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:51:32.038Z",
+      "target": "Foreign denial without transcript request",
+      "selector": "[role=alert]",
+      "expected": "This conversation is not available in your stored history.",
+      "status": "passed",
+      "observed": {
+        "statusHttp": 200,
+        "status": "external_unavailable",
+        "automaticMessageRequests": 0,
+        "manualGuessedMessagesHttp": 404
+      }
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:51:32.079Z",
+      "target": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-foreign-denied.png",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-foreign-denied.png",
+      "selector": "html",
+      "status": "passed",
+      "description": "Actual foreign external_unavailable is shown as unavailable, not a transcript transport error"
+    },
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:52:12.863Z",
+      "target": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "url": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "status": "passed",
+      "description": "Anonymous synthetic session reload"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:52:12.863Z",
+      "target": "Anonymous authorization denial",
+      "selector": "[role=alert]",
+      "expected": "Stored conversations could not be loaded from this server.",
+      "status": "passed",
+      "observed": {
+        "messagesHttp": 401,
+        "canonicalRecords": 0
+      }
+    },
+    {
+      "type": "navigate",
+      "timestamp": "2026-09-15T09:53:51.304Z",
+      "target": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "url": "http://127.0.0.1:58964/?thread=g002-live-431595-threadId",
+      "status": "passed",
+      "description": "Fresh Chromium process after actual server restart without reseeding"
+    },
+    {
+      "type": "assert",
+      "timestamp": "2026-09-15T09:53:51.304Z",
+      "target": "Server-authoritative history after both restarts",
+      "selector": "details > summary",
+      "expected": "Full stored message records (6) before Show more with empty localStorage",
+      "status": "passed",
+      "observed": {
+        "rows": 50,
+        "records": 6,
+        "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229",
+        "localStorage": 0,
+        "beforeBrowser": "349b0941-bce9-4e9a-beae-33ed378def63",
+        "afterBrowser": "bac7be47-8ae5-4dcb-815e-6ff8cefc9ea2"
+      }
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:53:51.413Z",
+      "target": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-restart.png",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-restart.png",
+      "selector": "html",
+      "status": "passed",
+      "description": "Fresh Chromium restores complete selected canonical records directly from PostgreSQL"
+    },
+    {
+      "type": "screenshot",
+      "timestamp": "2026-09-15T09:55:39.218Z",
+      "target": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-restart.jpg",
+      "path": "/Users/alpox/Desktop/dev/alpox/openbot/artifacts/g001-verification-431595/g003-history-after-restart.jpg",
+      "selector": "html",
+      "status": "passed",
+      "description": "Same genuine current history view encoded asJPEG; no pixel or page modifications"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:48:44.068Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:48:44.077Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:48:44.092Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads/g002-live-431595-threadId/messages",
+      "timestamp": "2026-09-15T09:48:44.092Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:50:00.835Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:50:00.855Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:50:00.871Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads/g002-live-431595-threadId/messages",
+      "timestamp": "2026-09-15T09:50:00.871Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50&cursor=eyJ1cGRhdGVkQXQiOiIyMDI2LTA5LTE1VDA5OjQ4OjQzLjc0NDEyOSswMDowMCIsImlkIjoiMDQyNjNlZDItNTBlZC04ZTYxLWEwNjEtNmVjZmRlNjcxNTg2IiwiYWdlbnRJZCI6bnVsbCwiZGlyZWN0T25seSI6ZmFsc2V9",
+      "timestamp": "2026-09-15T09:50:43.032Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50&cursor=eyJ1cGRhdGVkQXQiOiIyMDI2LTA5LTE1VDA5OjQ4OjQzLjc0NDEyOSswMDowMCIsImlkIjoiMDQyNjNlZDItNTBlZC04ZTYxLWEwNjEtNmVjZmRlNjcxNTg2IiwiYWdlbnRJZCI6bnVsbCwiZGlyZWN0T25seSI6ZmFsc2V9",
+      "timestamp": "2026-09-15T09:50:43.087Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads/g002-live-431595-threadId/messages?agentId=g002-live-431595-agentId",
+      "timestamp": "2026-09-15T09:50:43.110Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:51:30.044Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g003-missing-owned-scope",
+      "timestamp": "2026-09-15T09:51:30.063Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:51:31.064Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:51:31.076Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:52:11.875Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads?limit=50",
+      "timestamp": "2026-09-15T09:52:12.895Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:52:12.916Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/threads/g002-live-431595-threadId",
+      "timestamp": "2026-09-15T09:52:12.933Z"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:58964/api/copilotkit/threads/g002-live-431595-threadId/messages",
+      "timestamp": "2026-09-15T09:52:12.934Z"
+    }
+  ],
+  "scope": "Actual production ImportedHistory and protected PostgreSQL routes with synthetic actors; no private source or full-shell claim.",
+  "setup": {
+    "syntheticAdditionalThreads": 65,
+    "totalThreads": 66,
+    "fixtureNamespace": "g002-live-431595",
+    "database": "openbot_g001_final_test",
+    "fixtureOnly": true
+  },
+  "diagnostics": [
+    "Initial wait selected the first tool disclosure instead of the full-record disclosure; DOM already contained all6records. Corrected the harness selector without product changes or additional mints.",
+    "Native screenshot validator rejected the genuine visually inspected PNG as uniform; captured the same unmodified live view inJPEG for format-compatible validation."
+  ],
+  "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229",
+  "beforeBrowser": "349b0941-bce9-4e9a-beae-33ed378def63",
+  "lifecycle": {
+    "serverRestart": {
+      "timestamp": "2026-09-15T09:52:14.804Z",
+      "restarted": true,
+      "reseeded": false
+    },
+    "beforeBrowser": "349b0941-bce9-4e9a-beae-33ed378def63",
+    "clearedStorage": true,
+    "afterBrowser": "bac7be47-8ae5-4dcb-815e-6ff8cefc9ea2"
+  },
+  "finishedAt": "2026-09-15T09:55:39.218Z",
+  "limitations": [
+    "Production component and real protected PostgreSQL routes with synthetic actors/data; not full-shell/native-GUI/private-source recovery or production deployment."
+  ],
+  "cleanup": {
+    "status": "passed",
+    "verifiedAt": "2026-09-15T10:02:20.347Z",
+    "remainingOwnedThreads": 0,
+    "remainingOwnedUsers": 0,
+    "recovery": "Cleanup handler removed all66threads; its child hit a transient Bun1.4.0 require-async-module error. The existing cleanup entrypoint was rerun once in a fresh minimal-env process and exited0; final counts are zero."
+  }
+}

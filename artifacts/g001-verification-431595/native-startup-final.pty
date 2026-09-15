@@ -1,0 +1,16 @@
+^D   Compiling openbot-desktop v0.0.11 (/Users/alpox/Desktop/dev/alpox/openbot/desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.18s
+     Running unittests src/main.rs (desktop/src-tauri/target/debug/deps/openbot_desktop-e58382864afb96a1)
+
+running 8 tests
+test tests::remote_harness_start_ipc_skips_local_service_and_asks_persisted_endpoint ... ok
+test tests::remote_harness_start_ipc_ignores_stale_local_image ... ok
+test tests::installed_harness_start_ipc_keeps_local_service ... ok
+test tests::chatgpt_plan_harness_start_ipc_overrides_remote_choice ... ok
+test tests::compatible_harness_start_ipc_advertises_eligible_bundled_agent ... ok
+test tests::anthropic_api_harness_start_ipc_advertises_eligible_bundled_agent ... ok
+test tests::claude_plan_harness_start_ipc_overrides_remote_choice ... ok
+test tests::no_harness_start_ipc_keeps_only_core_and_eligible_bundled_services ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 129 filtered out; finished in 0.76s
+

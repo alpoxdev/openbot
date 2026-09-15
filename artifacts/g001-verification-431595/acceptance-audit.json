@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "kind": "api-package-test-report",
+  "goal": "G001",
+  "status": "generation3-verified-review-pending",
+  "reviewBoundary": {
+    "generation": 1,
+    "sourceHash": "sha256:8cecfc98e6601a65c4f8724c1240cc48cbe0dcb08252e09bfcbc7f5dfd9b700a",
+    "cleaner": "PASS",
+    "architect": "WATCH/COMMENT: unbounded history indexing",
+    "qa": "Blocked pending identity, DNS pinning, mounted runtime, and importer crash proofs",
+    "fixGoal": "G002",
+    "evidenceScope": "This boundary records historical generation1 review. Verification below is current through G003; generation2 disposition is recorded separately. Final source-bound approval belongs to the native ledger, not this pre-freeze audit.",
+    "clarification": "Private recovery, production deployment, full-shell GUI automation, immediate transient-buffer erasure, and a separate command label are not new acceptance requirements."
+  },
+  "approvedPlan": ".gjc/_session-01a0a22b-1bab-77ac-9e62-43159544234d/plans/ralplan/01a0a22b-1bab-77ac-9e62-43159544234d/stage-04-revision.md",
+  "verification": {
+    "root": {
+      "passed": 4136,
+      "skipped": 21,
+      "failed": 0,
+      "files": 333,
+      "assertions": 11976,
+      "seconds": 83.33,
+      "exitCode": 0,
+      "artifact": "root-full-suite.pty",
+      "command": "env -i PATH=... HOME=... TEST_DATABASE_URL=<dedicated-test-db> DATABASE_URL=<same-test-db> COPILOTKIT_TELEMETRY_DISABLED=true bun --no-env-file test",
+      "notes": "Seven original appearance UI cases execute in an isolated child; the parent requires the exact seven-case set and exit zero. External deployment and environment-gated computer/supervisor cases remain skipped; no tests were disabled to pass."
+    },
+    "database": {
+      "name": "openbot_g001_final_test",
+      "container": "openbot-conversations-test-431595",
+      "migrationCommand": "bun --no-env-file server/scripts/migrate.ts",
+      "migrationResult": "migrations-applied:ok",
+      "scope": "New dedicated test database only, including migrations0037/0038/0039; no production database."
+    },
+    "static": {
+      "lint": "821 files, zero warnings/errors using VCS-aware Biome lint --error-on-warnings",
+      "types": "Root app/server/worker typechecks passed",
+      "format": "Owned changed source formatted and checked; cargo fmt --check passed. Global format:check is not claimed: it also scans ignored .gjc runtime records and unrelated pre-existing/user formatting.",
+      "shell": "bash -n scripts/start.sh scripts/stop.sh passed",
+      "diff": "git diff --check passed"
+    },
+    "build": {
+      "app": "passed",
+      "server": "passed",
+      "worker": "passed",
+      "desktop": "passed",
+      "warnings": "App Vite build emits browser-externalization and large-chunk warnings; warnings were not suppressed."
+    },
+    "nativeDev": {
+      "libraryPassed": 437,
+      "libraryIgnored": 3,
+      "binaryPassed": 138,
+      "binaryIgnored": 1,
+      "failed": 0,
+      "artifact": "native-dev-tests.log"
+    },
+    "nativePackaged": {
+      "libraryPassed": 435,
+      "libraryIgnored": 3,
+      "binaryPassed": 137,
+      "binaryIgnored": 0,
+      "failed": 0,
+      "artifact": "native-packaged-tests.log"
+    },
+    "nativeStartup": {
+      "passed": 8,
+      "failed": 0,
+      "artifact": "g003-native-startup.pty",
+      "scope": "Fresh real PTY public startup/Ask IPC tests with24 actual terminal escape sequences, including persisted remote mode and synthetic SSE endpoint; not graphical-shell automation."
+    },
+    "charts": {
+      "fixturesPassed": 5,
+      "refusalsPassed": 17,
+      "artifacts": ["chart-validation.pty", "chart-refusal-report.json"],
+      "scope": "Exact CI render flags, synthetic generated encryption key and explicit offline Kubernetes capabilities; no cluster installation/deployment."
+    },
+    "browser": {
+      "artifacts": [
+        "browser-history-test-report.json",
+        "browser-outage-automation.json",
+        "history-before.png",
+        "history-after-restart.png",
+        "history-anonymous-denied.png",
+        "history-read-failure.png"
+      ],
+      "scope": "Actual Chromium real ImportedHistory component with real protected routes/store/engine/PostgreSQL and synthetic sessions/messages, not the whole application shell.",
+      "restartDigest": "19f64f82c7b90c83f35378448d0ccd2e57878cb1b3073fe822f97a13ccccbaf1",
+      "records": 6,
+      "roles": ["user", "assistant", "tool", "assistant", "user", "assistant"],
+      "assertions": [
+        "Server restart without reseeding",
+        "Actual browser process close/reopen and empty localStorage",
+        "Same full canonical record digest/order",
+        "Foreign guessed history404 and anonymous401",
+        "GET-only local replay without source/tool execution",
+        "Explicit transport error and subsequent six-record recovery"
+      ]
+    },
+    "diagrams": "Both deterministic SVG themes inspected; actual dark capture architecture-dark.png; script/onload/javascript search found none."
+  },
+  "slices": [
+    {
+      "id": "01",
+      "result": "Additive conversations schema, journal/snapshot and real migration/store coverage"
+    },
+    {
+      "id": "02",
+      "result": "Encrypted import job/item schema plus durable attempt migration0039; fresh migration and integration coverage"
+    },
+    {
+      "id": "03",
+      "result": "Canonical ordered store/projection; rollback, duplicate, authorization, tool identity and persistence-error tests"
+    },
+    {
+      "id": "04",
+      "result": "Durable public runner/engine, request scope, leases, terminal truth, stop/reconnect and SIGKILL tests"
+    },
+    {
+      "id": "05",
+      "result": "GET-only bounded source adapter; origin/redirect/auth/cap/timeout/retry and decoded-gap tests"
+    },
+    {
+      "id": "06",
+      "result": "Declared inventory, encrypted capture, revision/attempt fencing and awaited page checkpoints; PG contention/privacy tests"
+    },
+    {
+      "id": "07",
+      "result": "Capture/validate/atomic publish; source-change, owner conflict, idempotence, cancellation and no-overwrite integration tests"
+    },
+    {
+      "id": "08",
+      "result": "Protected import HTTP lifecycle, fresh confirmation, transient key and requester isolation tests"
+    },
+    {
+      "id": "09",
+      "result": "Shared local engine and request-local SSE dispatcher; no required Intelligence config/client; model/OpenBot authorization retained"
+    },
+    {
+      "id": "10",
+      "result": "Protected asynchronous local history/state/events/status; exact routes, deny aliases and honest readiness tests"
+    },
+    {
+      "id": "11",
+      "result": "Owner-bound mint and atomic channel registration; old IDs retained and arbitrary adoption rejected"
+    },
+    {
+      "id": "12",
+      "result": "Routine canonical local history, delta-only accepted input and exact-run timeout stop; complete routine suites"
+    },
+    {
+      "id": "13",
+      "result": "Handoff shared engine/grants, shown-only persistence and bounded terminal stop acknowledgement; real PostgreSQL end-to-end tests"
+    },
+    {
+      "id": "14",
+      "result": "Local summary history with honest unavailable/invalid outcomes; bounded opening-pair prompt policy retained"
+    },
+    {
+      "id": "15",
+      "result": "Browser local replay, stop/detach and late-load safety; channel refresh/join/history tests"
+    },
+    {
+      "id": "16",
+      "result": "Full inert canonical history, direct IDs/deep links, safe mint and readiness-gated live handover; browser restart proof"
+    },
+    {
+      "id": "17",
+      "result": "Optional settings import inventory/approval/run/retry/cancel/coverage; lexical operation keys and empty mutation-cache tests"
+    },
+    {
+      "id": "18",
+      "result": "Authenticated provider/render/tool wiring retained; truthful SSE capabilities and canonical-only runtime history tests"
+    },
+    {
+      "id": "19",
+      "result": "Desktop removes CopilotKit login/project prerequisite while preserving model/root/harness and remote Connect; UI tests"
+    },
+    {
+      "id": "20",
+      "result": "Native sign-in/provision commands removed without vault access on startup; full native dev/packaged tests"
+    },
+    {
+      "id": "21",
+      "result": "No source secrets/endpoints forwarded through native runtime env; model/encryption continuity tests"
+    },
+    {
+      "id": "22",
+      "result": "Legacy native vault/saved-intent/stack bytes remain inert and secure; no automatic deletion/rekeying"
+    },
+    {
+      "id": "23",
+      "result": "Account-free defaults/start/stop/readiness/smoke expectations; real shell and full startup test coverage"
+    },
+    {
+      "id": "24",
+      "result": "Helm generated source prerequisites removed; five render/coherence checks and retained safety refusals"
+    },
+    {
+      "id": "25",
+      "result": "All five existing Helm CI fixtures verified with unchanged model/auth/database boundaries"
+    },
+    {
+      "id": "26",
+      "result": "README and configuration/architecture/routines/import guidance explain full PostgreSQL authority and qualified import coverage"
+    },
+    {
+      "id": "27",
+      "result": "Deployment/development/releasing/chart/Compose guidance and tests align; preserve existing data and require explicit operations"
+    },
+    {
+      "id": "28",
+      "result": "Synthetic source plus real PG/runtime import end-to-end, actual Chromium restart/readback and native IPC acceptance"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC1",
+      "evidence": "Configuration/copilot/native startup and full routine/handoff tests: no CopilotKit prerequisite; configured model and OpenBot auth remain."
+    },
+    {
+      "id": "AC2",
+      "evidence": "Source/store/importer tests: archived multi-page declared scope, explicit probes, cycles/caps and incomplete inventory."
+    },
+    {
+      "id": "AC3",
+      "evidence": "Source/routes/UI privacy tests: GET-only pinned origin, encrypted capture, sanitized errors, transient lexical keys, no mutation cache/source writes."
+    },
+    {
+      "id": "AC4",
+      "evidence": "PG import/store/route tests: canonical owner/channel/message identity, current membership, foreign denial and collision quarantine."
+    },
+    {
+      "id": "AC5",
+      "evidence": "Validation/importer tests: stable hashes/counts/order and explicit malformed/tool/events/state/asset/source-change gaps; media references are not file bytes."
+    },
+    {
+      "id": "AC6",
+      "evidence": "DB-clock fenced attempts, stale-writer/cancel/expiry/reclaim tests; atomic/idempotent publication and local continuation conflict tests."
+    },
+    {
+      "id": "AC7",
+      "evidence": "Browser full canonical inert records and import e2e: source-blocked readback, safe readiness only, no historical tool execution."
+    },
+    {
+      "id": "AC8",
+      "evidence": "Real browser/server restart six-record digest; PG process SIGKILL/fencing/replay/stop/error/duplicate tests."
+    },
+    {
+      "id": "AC9",
+      "evidence": "All routine/handoff/summary suites use local canonical history without retargeting/source fallback; model prompt bounds are not stored transcript truncation."
+    },
+    {
+      "id": "AC10",
+      "evidence": "Full tests/builds/static checks, five chart fixtures, seventeen refusals, native credential-preservation tests and updated guidance."
+    },
+    {
+      "id": "AC11",
+      "evidence": "Documentation and this report distinguish implemented runtime/import feature from actual private recovery. No private source import, universal recovery or deployment claimed."
+    },
+    {
+      "id": "AC12",
+      "evidence": "Mounted copilot dispatcher and runner integration tests: exact route allowlist, fresh immutable actor scopes, A/B isolation, pinned stop and preserved public SDK lifecycle."
+    }
+  ],
+  "generation2": {
+    "fixGoal": "G002",
+    "review": {
+      "sourceHash": "sha256:36aa84cd09a9fae08a61931b0490fc7689b0d5ee6a49664ccf5efbfd23d3d047",
+      "joined": true,
+      "cleaner": "BLOCKED: external_unavailable direct-selection interpretation",
+      "architect": "Architecture/product CLEAR, code WATCH/COMMENT for the same bounded UI issue",
+      "qa": "Product e2e/red-team passed; raw browser capture lacked required gate envelope/selector metadata",
+      "fixGoal": "G003",
+      "rootArchive": "root-full-suite-generation2.pty"
+    },
+    "adversarial": {
+      "passed": 250,
+      "failed": 0,
+      "files": 13,
+      "assertions": 1136,
+      "seconds": 13.15,
+      "artifact": "g002-adversarial-tests.pty",
+      "command": "env -i PATH=\"$PATH\" HOME=\"$HOME\" TEST_DATABASE_URL=\"$TEST_DATABASE_URL\" DATABASE_URL=\"$TEST_DATABASE_URL\" COPILOTKIT_TELEMETRY_DISABLED=true bun --no-env-file test app/tests/imported-history.test.tsx app/tests/bot-thread.test.ts server/tests/conversation-import-source.test.ts server/tests/conversation-importer.integration.test.ts server/tests/conversation-import.e2e.test.ts server/tests/conversation-process.integration.test.ts server/tests/conversation-runner.integration.test.ts server/tests/conversation-routes.test.ts server/tests/conversation-store.integration.test.ts server/tests/conversation-import-store.integration.test.ts server/tests/copilot.test.ts server/tests/thread-routes.test.ts server/tests/thread-status.test.ts"
+    },
+    "resolved": [
+      "Bounded metadata/SQL-preview index, no full snapshot replay; microsecond-faithful filtered cursors",
+      "Strict browser page/filter validation prevents contradictory responses becoming false empty history",
+      "Off-page deep links use protected direct lookup without retargeting; owned opaque IDs have consistent readiness and transcript access",
+      "Source DNS/address checks fail closed and pin the connection while retaining Host/SNI and refusing redirects",
+      "Agent/organization/creator/mapped-owner contradictions block publication; missing optional agent metadata still permits history-only import",
+      "Public channel route must match the canonical thread agent; trusted internal member execution retains its grants",
+      "Mounted status/Stop actor isolation and delayed A1 Stop protection for A2/B",
+      "Actual importer SIGKILL after encrypted staging, fixture-only forced lease expiry, fresh-process reclaim, stale fencing and exactly-once publication"
+    ],
+    "browser": {
+      "artifact": "g002-browser-automation.json",
+      "screenshots": [
+        "g002-history-after-pagination.png",
+        "g002-history-after-restart.png",
+        "g002-history-anonymous-denied.png"
+      ],
+      "syntheticThreads": 66,
+      "pageSizes": [50, 16],
+      "recordCount": 6,
+      "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229",
+      "assertions": [
+        "Authorized off-page opaque-ID history renders before Show more",
+        "Aborted next-page request preserves 50 rows and full selected records; retry discovers all 66",
+        "Actual server restart without reseeding and different Chromium process restore byte-identical canonical records with empty localStorage",
+        "Foreign direct read404, anonymous401, no rendered messages/tools, and owner recovery",
+        "Owned synthetic browser fixture and its66threads were explicitly cleaned afterward"
+      ],
+      "scope": "Real production ImportedHistory, protected routes/store/engine and PostgreSQL; synthetic actors/data, not a whole-shell or private-import claim"
+    },
+    "diagnostics": "Earlier cursor, orphan-fixture and off-page/opaque-ID failures are retained as diagnostics, not successful evidence. The temporary Bun browser bundle emitted a directory-mismatch diagnostic but its generated bundle was exercised successfully in Chromium."
+  },
+  "generation3": {
+    "fixGoal": "G003",
+    "resolved": [
+      "Direct off-page selection explicitly permits only local/import_pending; external_unavailable never triggers a transcript request or retarget",
+      "Owned import_pending history stays readable without enabling live handover",
+      "Empty-string cursors are rejected; the regression contains a valid nonempty row so it exercises the actual former bug",
+      "Fresh actual browser automation records required schema, selectors and statuses without inventing missing invocation metadata in the old raw capture"
+    ],
+    "adversarial": {
+      "passed": 254,
+      "failed": 0,
+      "assertions": 1204,
+      "files": 13,
+      "seconds": 12.94,
+      "artifact": "g003-adversarial-tests.pty"
+    },
+    "client": {
+      "passed": 40,
+      "failed": 0,
+      "assertions": 102,
+      "artifact": "g003-client-tests.pty"
+    },
+    "browser": {
+      "artifact": "g003-browser-automation.json",
+      "gateScreenshot": "g003-history-after-restart.jpg",
+      "diagnosticScreenshots": [
+        "g003-history-after-pagination.png",
+        "g003-history-after-restart.png",
+        "g003-history-foreign-denied.png"
+      ],
+      "digest": "02ee91547f1662aedd4b8037fe8afd45edd5dea7b31018e486ceca04d6368229",
+      "beforeBrowser": "349b0941-bce9-4e9a-beae-33ed378def63",
+      "afterBrowser": "bac7be47-8ae5-4dcb-815e-6ff8cefc9ea2",
+      "assertions": [
+        "66 synthetic owned threads over50+16pages, selected6records before Show more",
+        "Failed cursor page retains50summaries and6records; retry exhausts66summaries without changing records",
+        "Actual200external_unavailable for owner-missing/nonempty-index and foreign/empty-index makes zero automatic message requests",
+        "Manual foreign guessed transcript404, anonymous401, no rendered records and owner recovery",
+        "Actual server restart without reseeding and new Chromium process with empty localStorage restore the same6-record digest",
+        "Owned synthetic threads/users were explicitly verified absent after cleanup"
+      ]
+    },
+    "diagnostics": [
+      "A harness wait initially selected the tool disclosure rather than the full-record disclosure; actual history was already rendered, and the selector was corrected.",
+      "The native validator rejected a genuine visually inspected PNG as uniform; a fresh JPEG capture of the same unmodified live view passed screenshot validation.",
+      "The first cleanup child hit a transient Bun1.4.0 require-async-module error after deleting the66threads; one fresh minimal-env retry of the existing cleanup entrypoint exited0 and final owned thread/user counts were zero.",
+      "An unused test import failed strict lint after the first passing root run. It was removed, and the full254-case adversarial/root/lint/type/build union was rerun successfully.",
+      "Raw G002 automation remains unchanged as historical execution evidence; current gate evidence uses the structurally validated G003 capture and fresh native PTY."
+    ]
+  },
+  "additionalObligations": [
+    "Content-free bounded no-throw runtime/import observations, hashed correlations and post-commit publication metrics",
+    "Public SDK onRunFailed suppression with a durable failure latch prevents raw producer-error logging, including falsey failures",
+    "Public import coverage excludes raw state/skipped-delta content and rejects credential-bearing source references",
+    "Concurrent user desktop/remote/telemetry/CloakBrowser work preserved"
+  ],
+  "limitations": [
+    "No private CopilotKit source was accessed or imported; synthetic histories are not recovered user histories.",
+    "No production migration or deployment was performed.",
+    "Unknown historical identities and source events/state/assets can remain gaps during a future authorized import.",
+    "Full graphical desktop shell and full authenticated application shell were not browser-automated; evidence is scoped to actual component/IPC surfaces.",
+    "Final source-bound cleaner/architect/QA and terminal critic review are still pending at report creation."
+  ]
+}

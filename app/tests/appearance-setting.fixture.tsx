@@ -1,15 +1,30 @@
-import { afterAll, mock } from "bun:test";
+import { afterAll, mock, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 /*
  * Base UI's platform and owner-document helpers are imported by the real Select before the test
- * body runs. Register Happy DOM here, while this fixture is the first dependency of the test, so
- * those helpers see a browser-like environment at module evaluation time rather than only after
- * the test's beforeAll hook.
+ * body runs. This fixture is dynamically imported by the child test process, so registration is
+ * complete before any DOM-sensitive application module is evaluated.
  */
 GlobalRegistrator.register({ url: "http://localhost/settings" });
 
-afterAll(() => GlobalRegistrator.unregister());
+/*
+ * ImportedHistory is also rendered by the Bot route and the account-free acceptance test. A
+ * process-wide module mock here survives this file and replaces their real history view, so use a
+ * restorable namespace spy instead.
+ */
+const ImportedHistoryModule = await import(
+  "@/components/channels/imported-history"
+);
+const importedHistory = spyOn(
+  ImportedHistoryModule,
+  "ImportedHistory",
+).mockImplementation(() => <div data-testid="imported-history" />);
+
+afterAll(() => {
+  importedHistory.mockRestore();
+  GlobalRegistrator.unregister();
+});
 
 /*
  * The settings screen's other sections reach for server state and are outside this test's scope.
@@ -24,8 +39,4 @@ mock.module("@/components/settings/standing-instructions", () => ({
 
 mock.module("@/components/settings/conversation-import", () => ({
   ConversationImport: () => <div data-testid="conversation-import" />,
-}));
-
-mock.module("@/components/channels/imported-history", () => ({
-  ImportedHistory: () => <div data-testid="imported-history" />,
 }));
